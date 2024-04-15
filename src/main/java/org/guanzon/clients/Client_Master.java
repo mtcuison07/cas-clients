@@ -37,7 +37,7 @@ public class Client_Master implements GRecord{
 
     @Override
     public int getEditMode() {
-        return pnEditMode;
+        return pnEditMode;        
     }
 
     @Override

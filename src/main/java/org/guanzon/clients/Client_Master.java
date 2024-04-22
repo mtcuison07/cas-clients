@@ -2,11 +2,22 @@ package org.guanzon.clients;
 
 import com.google.gson.Gson;
 import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import org.guanzon.appdriver.agent.ShowDialogFX;
+import org.guanzon.appdriver.base.CommonUtils;
 import org.guanzon.appdriver.base.GRider;
 import org.guanzon.appdriver.base.MiscUtil;
+import org.guanzon.appdriver.base.SQLUtil;
 import org.guanzon.appdriver.constant.EditMode;
 import org.guanzon.appdriver.iface.GRecord;
+import org.guanzon.validators.client.Validator_Client_Address;
+import org.guanzon.validators.client.Validator_Client_Institution_Contact;
+import org.guanzon.validators.client.Validator_Client_Mail;
+import org.guanzon.validators.client.Validator_Client_Master;
+import org.guanzon.validators.client.Validator_Client_Mobile;
+import org.guanzon.validators.client.Validator_Client_Social_Media;
 import org.json.simple.JSONObject;
 
 /**
@@ -14,7 +25,9 @@ import org.json.simple.JSONObject;
  * @author Michael Cuison
  */
 public class Client_Master implements GRecord{
-    GRider poAppDrver;
+    
+    final String XML = "Model_Client_Master.xml";
+    GRider poGRider;
     String psBranchCd;
     boolean pbWtParent;
     
@@ -29,8 +42,11 @@ public class Client_Master implements GRecord{
     ArrayList<Model_Client_Social_Media> paSocMed;
     ArrayList<Model_Client_Institution_Contact> paInsContc;
     
+    
+    public JSONObject poJSON;
+    
     public Client_Master(GRider foAppDrver, boolean fbWtParent, String fsBranchCd){
-        poAppDrver = foAppDrver;
+        poGRider = foAppDrver;
         pbWtParent = fbWtParent;
         psBranchCd = fsBranchCd.isEmpty() ? foAppDrver.getBranchCode() : fsBranchCd;
     }
@@ -43,17 +59,18 @@ public class Client_Master implements GRecord{
     @Override
     public JSONObject newRecord() {
         
-            JSONObject json = new JSONObject();
+            poJSON = new JSONObject();
         try{
             
             pnEditMode = EditMode.ADDNEW;
             org.json.simple.JSONObject obj;
 
-            poClient = new Model_Client_Master(setConnection());
+            poClient = new Model_Client_Master(setConnection(), poGRider);
             Connection loConn = null;
             loConn = setConnection();
 
             poClient.setClientID(MiscUtil.getNextCode(poClient.getTable(), "sClientID", true, loConn, psBranchCd));
+            poClient.newRecord();
 
             //init detail
             //init detail
@@ -62,15 +79,32 @@ public class Client_Master implements GRecord{
             paAddress = new ArrayList<>();
             paSocMed = new ArrayList<>();
             paInsContc = new ArrayList<>();
-            json.put("result", "success");
-            json.put("message", "initialized new record.");
+            
+            if (poClient == null){
+                
+                poJSON.put("result", "error");
+                poJSON.put("message", "initialized new record failed.");
+                return poJSON;
+            }else{
+                addAddress();
+                addContact();
+                addMail();
+                addInsContact();
+                addSocialMedia();
+                
+                
+                poJSON.put("result", "success");
+                poJSON.put("message", "initialized new record.");
+                pnEditMode = EditMode.ADDNEW;
+            }
+               
         }catch(NullPointerException e){
             
-            json.put("result", "error");
-            json.put("message", e.getMessage());
+            poJSON.put("result", "error");
+            poJSON.put("message", e.getMessage());
         }
         
-        return json;
+        return poJSON;
     }
         
     
@@ -78,9 +112,25 @@ public class Client_Master implements GRecord{
     @Override
     public JSONObject openRecord(String fsValue) {
         pnEditMode = EditMode.READY;
-        JSONObject obj = new JSONObject();
-        obj.put("pnEditMode", pnEditMode);
-        return obj;
+        poJSON = new JSONObject();
+        poJSON = poClient.openRecord(fsValue);
+        int lnCtr;
+        for(lnCtr = 0; lnCtr < paMail.size(); lnCtr++){
+            poJSON = paMail.get(lnCtr).openRecord(fsValue);
+        }
+        for(lnCtr = 0; lnCtr < paMobile.size(); lnCtr++){
+            poJSON = paMobile.get(lnCtr).openRecord(fsValue);
+        }
+        for(lnCtr = 0; lnCtr < paAddress.size(); lnCtr++){
+            poJSON = paAddress.get(lnCtr).openRecord((String) SearchClientAddress(fsValue).get("sAddrssID"));
+        }
+        for(lnCtr = 0; lnCtr < paInsContc.size(); lnCtr++){
+            poJSON = paInsContc.get(lnCtr).openRecord(fsValue);
+        }
+        for(lnCtr = 0; lnCtr < paSocMed.size(); lnCtr++){
+            poJSON = paSocMed.get(lnCtr).openRecord(fsValue);
+        }
+        return poJSON;
     }
 
     @Override
@@ -94,9 +144,65 @@ public class Client_Master implements GRecord{
     @Override
     public JSONObject saveRecord() {
         pnEditMode = EditMode.READY;
-        JSONObject obj = new JSONObject();
-        obj.put("pnEditMode", pnEditMode);
-        return obj;
+        
+        poJSON = new JSONObject();
+        
+        if (!pbWtParent){
+            poGRider.beginTrans();
+            System.out.println("beginTrans");
+        }
+        
+        Validator_Client_Master validator = new Validator_Client_Master(poClient);
+        
+        if (!validator.isEntryOkay()){
+            poJSON.put("result", "success");
+            poJSON.put("message", validator.getMessage());
+            return poJSON;
+        }
+        poJSON =  poClient.saveRecord();
+        if("error".equalsIgnoreCase((String)poJSON.get("result"))){
+            poGRider.rollbackTrans();
+            return poJSON;
+        }
+        poJSON =  saveMobile();
+        if("error".equalsIgnoreCase((String)poJSON.get("result"))){
+            
+            poGRider.rollbackTrans();
+            return poJSON;
+        }
+        poJSON =  saveAddress();
+        if("error".equalsIgnoreCase((String)poJSON.get("result"))){
+            
+            poGRider.rollbackTrans();
+            return poJSON;
+        }
+        poJSON =  saveEmail();
+        
+        if("error".equalsIgnoreCase((String)poJSON.get("result"))){
+            
+            poGRider.rollbackTrans();
+            return poJSON;
+        }
+        poJSON =  saveSocialAccount();
+        
+        if("error".equalsIgnoreCase((String)poJSON.get("result"))){
+            
+            poGRider.rollbackTrans();
+            return poJSON;
+        }
+        poJSON =  saveInstitution();
+        
+        if("error".equalsIgnoreCase((String)poJSON.get("result"))){
+            
+            poGRider.rollbackTrans();
+            return poJSON;
+        }
+        
+        if (!pbWtParent) {
+            poGRider.commitTrans();
+            System.out.println("commitTrans");
+        }
+        return poJSON;
     }
 
     @Override
@@ -115,19 +221,38 @@ public class Client_Master implements GRecord{
         return obj;
     }
     
-    public boolean addContact(){
-        if (paMobile.isEmpty()){
-            paMobile.add(new Model_Client_Mobile(poAppDrver.getConnection()));
+    public JSONObject addContact(){
+        poJSON = new JSONObject();
+        if (paMobile.size()<=0){
+            paMobile.add(new Model_Client_Mobile(poGRider.getConnection(), poGRider));
+            paMobile.get(0).newRecord();
+            paMobile.get(0).setValue("sClientID", poClient.getClientID());
+            poJSON.put("result", "success");
+            poJSON.put("message", "Mobile No. add record.");
         } else {
-            if (paMobile.get(paMobile.size()-1).getContactNo().isEmpty()){
-                paMobile.add(new Model_Client_Mobile(poAppDrver.getConnection()));
-            } else {
-                psMessagex = "Last contact information has no contact number.";
-                return false;
+            
+            Validator_Client_Mobile  validator = new Validator_Client_Mobile(paMobile.get(paMobile.size()-1));
+            if(!validator.isEntryOkay()){
+                poJSON.put("result", "error");
+                poJSON.put("message", validator.getMessage());
+                return poJSON;
             }
+            paMobile.add(new Model_Client_Mobile(poGRider.getConnection(), poGRider));
+
+            paMobile.get(paMobile.size()-1).setClientID(poClient.getClientID());
+//            if (!paMobile.get(paMobile.size()-1).getContactNo().isEmpty()){
+//                paMobile.add(new Model_Client_Mobile(poGRider.getConnection(), poGRider));
+//                paMobile.get(paMobile.size()-1).setValue("sClientID", poClient.getClientID());
+//                poJSON.put("result", "success");
+//                poJSON.put("message", "Mobile No. add record.");
+//            } else {
+//                poJSON.put("result", "error");
+//                poJSON.put("message", "Last contact information has no contact number.");
+//                return poJSON;
+//            }
         }
         
-        return true;
+        return poJSON;
     }
     
     public Model_Client_Mobile getContact(int fnIndex){
@@ -136,18 +261,25 @@ public class Client_Master implements GRecord{
         return paMobile.get(fnIndex);
     }
     
-    public boolean addMail(){
+    public JSONObject addMail(){
+        poJSON = new JSONObject();
         if (paMail.isEmpty()){
-            paMail.add(new Model_Client_Mail(poAppDrver.getConnection()));
+            paMail.add(new Model_Client_Mail(poGRider.getConnection(), poGRider));
+            paMail.get(0).newRecord();
+            poJSON.put("result", "success");
+            poJSON.put("message", "Email address add record.");
         } else {
             if (paMail.get(paMail.size()-1).getEmail().isEmpty()){
-                paMail.add(new Model_Client_Mail(poAppDrver.getConnection()));
+                paMail.add(new Model_Client_Mail(poGRider.getConnection(), poGRider));
+                poJSON.put("result", "success");
+                poJSON.put("message", "Email address add record.");
             } else {
-                psMessagex = "Last contact information has no contact number.";
-                return false;
+                poJSON.put("result", "error");
+                poJSON.put("message", "Last contact information has no email address.");
+                return poJSON;
             }
         }
-        return true;
+        return poJSON;
     }
     
     public Model_Client_Mail getEMail(int fnIndex){
@@ -156,18 +288,58 @@ public class Client_Master implements GRecord{
         return paMail.get(fnIndex);
     }
    
-    public boolean addAddress(){
+//    public JSONObject addAddress(){
+//        poJSON = new JSONObject();
+//        if (paAddress.isEmpty()){
+//            paAddress.add(new Model_Client_Address(poGRider.getConnection(), poGRider));
+//            paAddress.get(0).newRecord();
+//            poJSON.put("result", "success");
+//            poJSON.put("message", "Address add record.");
+//            
+//        } else {
+//            if (paAddress.get(paAddress.size()-1).getAddress().isEmpty()){
+//                paAddress.add(new Model_Client_Address(poGRider.getConnection(), poGRider));
+//                poJSON.put("result", "success");
+//                poJSON.put("message", "Address add record.");
+//            } else {
+//                poJSON.put("result", "error");
+//                poJSON.put("message", "Last contact information has no address.");
+//                return poJSON;
+//            }
+//        }
+//        return poJSON;
+//    }
+    
+    public JSONObject addAddress(){
+        poJSON = new JSONObject();
         if (paAddress.isEmpty()){
-            paAddress.add(new Model_Client_Address(poAppDrver.getConnection()));
+            paAddress.add(new Model_Client_Address(poGRider.getConnection(), poGRider));
+            paAddress.get(0).newRecord();
+            paAddress.get(0).setClientID(poClient.getClientID());
+            poJSON.put("result", "success");
+            poJSON.put("message", "Address add record.");
+
         } else {
-            if (paAddress.get(paAddress.size()-1).getAddress().isEmpty()){
-                paAddress.add(new Model_Client_Address(poAppDrver.getConnection()));
-            } else {
-                psMessagex = "Last contact information has no contact number.";
-                return false;
+            Validator_Client_Address  validator = new Validator_Client_Address(paAddress.get(paAddress.size()-1));
+            if(!validator.isEntryOkay()){
+                poJSON.put("result", "error");
+                poJSON.put("message", validator.getMessage());
+                return poJSON;
             }
+            paAddress.add(new Model_Client_Address(poGRider.getConnection(), poGRider));
+
+            paAddress.get(paAddress.size()-1).setClientID(poClient.getClientID());
+//            if (!paAddress.get(paAddress.size()-1).getAddress().isEmpty()){
+//                paAddress.add(new Model_Client_Address(poGRider.getConnection(), poGRider));
+//                poJSON.put("result", "success");
+//                poJSON.put("message", "Address add record.");
+//            } else {
+//                poJSON.put("result", "error");
+//                poJSON.put("message", "Last contact information has no address.");
+//                return poJSON;
+//            }
         }
-        return true;
+        return poJSON;
     }
     
     public Model_Client_Address getAddress(int fnIndex){
@@ -176,24 +348,85 @@ public class Client_Master implements GRecord{
         return paAddress.get(fnIndex);
     }
     
-    public boolean addInsContact(){
+    public JSONObject addInsContact(){
+        poJSON = new JSONObject();
         if (paInsContc.isEmpty()){
-            paInsContc.add(new Model_Client_Institution_Contact(poAppDrver.getConnection()));
+            paInsContc.add(new Model_Client_Institution_Contact(poGRider.getConnection(), poGRider));
+            paInsContc.get(0).newRecord();
+            paInsContc.get(0).setClientID(poClient.getClientID());
+            poJSON.put("result", "success");
+            poJSON.put("message", "Contact person add record.");
         } else {
-            if (paInsContc.get(paInsContc.size()-1).getContactID().isEmpty()){
-                paInsContc.add(new Model_Client_Institution_Contact(poAppDrver.getConnection()));
-            } else {
-                psMessagex = "Last contact information has no contact number.";
-                return false;
+            
+            Validator_Client_Institution_Contact  validator = new Validator_Client_Institution_Contact(paInsContc.get(paInsContc.size()-1));
+            if(!validator.isEntryOkay()){
+                poJSON.put("result", "error");
+                poJSON.put("message", validator.getMessage());
+                return poJSON;
             }
+            paInsContc.add(new Model_Client_Institution_Contact(poGRider.getConnection(), poGRider));
+
+            paInsContc.get(paInsContc.size()-1).setClientID(poClient.getClientID());
+//            if (paInsContc.get(paInsContc.size()-1).getContactID().isEmpty()){
+//                paInsContc.add(new Model_Client_Institution_Contact(poGRider.getConnection(), poGRider));
+//                poJSON.put("result", "success");
+//                poJSON.put("message", "Contact person add record.");
+//            } else {
+//                poJSON.put("result", "error");
+//                poJSON.put("message", "Last contact information has no contact person.");
+//                return poJSON;
+//            }
         }
-        return true;
+        return poJSON;
     }
     
     public Model_Client_Institution_Contact getContactID(int fnIndex){
         if (fnIndex > paInsContc.size() - 1 || fnIndex < 0) return null;
         
         return paInsContc.get(fnIndex);
+    }
+   
+    
+    
+    public JSONObject addSocialMedia(){
+        poJSON = new JSONObject();
+        if (paSocMed.isEmpty()){
+            paSocMed.add(new Model_Client_Social_Media(poGRider.getConnection(), poGRider));
+            paSocMed.get(0).newRecord();
+            paSocMed.get(0).setClientID(poClient.getClientID());
+            poJSON.put("result", "success");
+            poJSON.put("message", "Social media add record.");
+        } else {
+            Validator_Client_Social_Media validator = new Validator_Client_Social_Media(paSocMed.get(paSocMed.size()-1));
+            
+            if (!validator.isEntryOkay()){
+                poJSON.put("result", "error");
+                poJSON.put("message", validator.getMessage());
+                return poJSON;
+//                System.err.println(validator.getMessage());
+//                System.exit(1);
+            }
+            paSocMed.add(new Model_Client_Social_Media(poGRider.getConnection(), poGRider));
+            paSocMed.get(paSocMed.size()-1).setClientID(poClient.getClientID());
+            poJSON.put("result", "success");
+            poJSON.put("message", "Social media add record.");
+//            if (paSocMed.get(paSocMed.size()-1).getSocialID().isEmpty()){
+//                paSocMed.add(new Model_Client_Social_Media(poGRider.getConnection(), poGRider));
+//                poJSON.put("result", "success");
+//            poJSON.put("message", "Social media add record.");
+//            } else {
+//                poJSON.put("result", "error");
+//                poJSON.put("message", "Last social media information has no social account.");
+//                return poJSON;
+//            }
+        }
+        return poJSON;
+    }
+    
+    public Model_Client_Social_Media getSocialID(int fnIndex){
+        if (fnIndex > paSocMed.size() - 1 || fnIndex < 0) return null;
+        
+        return paSocMed.get(fnIndex);
     }
    
     
@@ -225,10 +458,7 @@ public class Client_Master implements GRecord{
 
     @Override
     public JSONObject setMaster(String fsCol, Object foData) {
-        JSONObject obj = new JSONObject();
-        setMaster(poClient.getColumn(fsCol), foData);
-        obj.put(poClient.getColumn(fsCol), foData);
-        return obj;
+        return setMaster(poClient.getColumn(fsCol), foData);
     }
 
     @Override
@@ -245,20 +475,290 @@ public class Client_Master implements GRecord{
     }
 
     @Override
-    public JSONObject searchRecord(String string, boolean bln) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    public JSONObject searchRecord(String fsValue, boolean fbByCode) {
+        return SearchClient(fsValue, fbByCode);
     }
     
     
+    public ArrayList<Model_Client_Mobile> getMobileList(){return paMobile;}
+    public void setMobileList(ArrayList<Model_Client_Mobile> foObj){this.paMobile = foObj;}
+    
+    public ArrayList<Model_Client_Address> getAddressList(){return paAddress;}
+    public void setAddressList(ArrayList<Model_Client_Address> foObj){this.paAddress = foObj;}
+    
+    public ArrayList<Model_Client_Mail> getEmailList(){return paMail;}
+    public void setEmailList(ArrayList<Model_Client_Mail> foObj){this.paMail = foObj;}
+    
+    
+    public ArrayList<Model_Client_Institution_Contact> getInsContactList(){return paInsContc;}
+    public void setInsContactList(ArrayList<Model_Client_Institution_Contact> foObj){this.paInsContc = foObj;}
+    
+    public ArrayList<Model_Client_Social_Media> getSocialMediaList(){return paSocMed;}
+    public void setSocialMediaList(ArrayList<Model_Client_Social_Media> foObj){this.paSocMed = foObj;}
+    
+    
+    
+    public void setMobile(int fnRow, int fnIndex, Object foValue){ paMobile.get(fnRow).setValue(fnIndex, foValue);}
+    public void setMobile(int fnRow, String fsIndex, Object foValue){ paMobile.get(fnRow).setValue(fsIndex, foValue);}
+    public Object getMobile(int fnRow, int fnIndex){return paMobile.get(fnRow).getValue(fnIndex);}
+    public Object getMobile(int fnRow, String fsIndex){return paMobile.get(fnRow).getValue(fsIndex);}
+    
+    public void setEmail(int fnRow, int fnIndex, Object foValue){ paMail.get(fnRow).setValue(fnIndex, foValue);}
+    public void setEmail(int fnRow, String fsIndex, Object foValue){ paMail.get(fnRow).setValue(fsIndex, foValue);}
+    
+    public Object getEmail(int fnRow, int fnIndex){return paMail.get(fnRow).getValue(fnIndex);}
+    public Object getEmail(int fnRow, String fsIndex){return paMail.get(fnRow).getValue(fsIndex);}
+    
+    public void setAddress(int fnRow, int fnIndex, Object foValue){ paAddress.get(fnRow).setValue(fnIndex, foValue);}
+    public void setAddress(int fnRow, String fsIndex, Object foValue){ paAddress.get(fnRow).setValue(fsIndex, foValue);}
+    public Object getAddress(int fnRow, int fnIndex){return paAddress.get(fnRow).getValue(fnIndex);}
+    public Object getAddress(int fnRow, String fsIndex){return paAddress.get(fnRow).getValue(fsIndex);}
+    
+    
+    
+    public void setInsContact(int fnRow, int fnIndex, Object foValue){ paInsContc.get(fnRow).setValue(fnIndex, foValue);}
+    public void setInsContact(int fnRow, String fsIndex, Object foValue){ paInsContc.get(fnRow).setValue(fsIndex, foValue);}
+    public Object getInsContact(int fnRow, int fnIndex){return paInsContc.get(fnRow).getValue(fnIndex);}
+    public Object getInsContact(int fnRow, String fsIndex){return paInsContc.get(fnRow).getValue(fsIndex);}
+    
+    
+    public void setSocialMed(int fnRow, int fnIndex, Object foValue){ paSocMed.get(fnRow).setValue(fnIndex, foValue);}
+    public void setSocialMed(int fnRow, String fsIndex, Object foValue){ paSocMed.get(fnRow).setValue(fsIndex, foValue);}
+    public Object getSocialMed(int fnRow, int fnIndex){return paSocMed.get(fnRow).getValue(fnIndex);}
+    public Object getSocialMed(int fnRow, String fsIndex){return paSocMed.get(fnRow).getValue(fsIndex);}
+    
+    
+    public JSONObject SearchClient(String fsValue, boolean fbByCode){
+        String lsHeader = "ID»Name»Address»Last Name»First Name»Midd Name»Suffix";
+        String lsColName = "sClientID»sClientNm»xAddressx»sLastName»sFrstName»sMiddName»sSuffixNm";
+        String lsColCrit = "a.sClientID»a.sClientNm»CONCAT(b.sHouseNox, ' ', b.sAddressx, ', ', c.sTownName, ' ', d.sProvName)»a.sLastName»a.sFrstName»a.sMiddName»a.sSuffixNm";
+        String lsSQL = "SELECT " +
+                            "  a.sClientID" +
+                            ", a.sClientNm" +
+                            ", CONCAT(b.sHouseNox, ' ', b.sAddressx, ', ', c.sTownName, ' ', d.sProvName) xAddressx" +
+                            ", a.sLastName" + 
+                            ", a.sFrstName" + 
+                            ", a.sMiddName" + 
+                            ", a.sSuffixNm" + 
+                        " FROM Client_Master a" + 
+                            " LEFT JOIN Client_Address b" + 
+                                " ON a.sClientID = b.sClientID" + 
+                                    " AND b.nPriority = 1" +
+                            " LEFT JOIN TownCity c" + 
+                                " ON b.sTownIDxx = c.sTownIDxx" + 
+                            " LEFT JOIN Client_Mobile d" +
+                                " ON c.sProvIDxx = d.sProvIDxx";
+        
+        poJSON = ShowDialogFX.Search(poGRider, 
+                                        lsSQL, 
+                                        fsValue, 
+                                        lsHeader, 
+                                        lsColName, 
+                                        lsColCrit, 
+                                        fbByCode ? 0 :1);
+        return openRecord((String) poJSON.get("sClientID"));
+    }
+    
+    public JSONObject SearchClientAddress(String fsValue){
+        String lsHeader = "ID»Address";
+        String lsColName = "sAddrssID»xAddressx";
+        String lsColCrit = "a.sAddrssID»CONCAT(b.sHouseNox, ' ', b.sAddressx, ', ', c.sTownName, ' ', d.sProvName)";
+        String lsSQL = "SELECT " +
+                            "  a.sAddrssID" +
+                            ", CONCAT(a.sHouseNox, ' ', a.sAddressx, ', ', c.sTownName, ' ', d.sProvName) xAddressx" +
+                        " FROM Client_Address a" + 
+                            " LEFT JOIN TownCity c" + 
+                                " ON b.sTownIDxx = c.sTownIDxx" + 
+                            " LEFT JOIN Client_Mobile d" +
+                                " ON c.sProvIDxx = d.sProvIDxx";
+        lsSQL = MiscUtil.addCondition(lsSQL, "a.sClientID = " + SQLUtil.toSQL(fsValue) + " AND a.nPriority = 1");
+        
+        ResultSet loRS = poGRider.executeQuery(lsSQL);
+
+        try {
+            while (loRS.next()){
+                paAddress.add(new Model_Client_Address(poGRider.getConnection(), poGRider));
+                for (int lnCtr = 1; lnCtr <= loRS.getMetaData().getColumnCount(); lnCtr++){
+                    paAddress.get(lnCtr).setValue(lnCtr, loRS.getObject(lnCtr));
+                }
+
+                pnEditMode = EditMode.UPDATE;
+
+                poJSON.put("result", "success");
+                poJSON.put("message", "Record loaded successfully.");
+            } 
+        } catch (SQLException e) {
+            poJSON.put("result", "error");
+            poJSON.put("message", e.getMessage());
+        }
+        return ShowDialogFX.Browse(poGRider, loRS, lsHeader, lsColName);
+    }
+    private JSONObject saveMobile(){
+        
+        JSONObject obj = new JSONObject();
+        if (paMobile.size()<= 0){
+            obj.put("result", "error");
+            obj.put("message", "No mobile number detected. Please encode client mobile number.");
+            return obj;
+        }
+        
+        int lnCtr;
+        String lsSQL;
+        
+        for (lnCtr = 0; lnCtr <= paMobile.size() -1; lnCtr++){
+            paMobile.get(lnCtr).setClientID(poClient.getClientID());
+            Validator_Client_Mobile validator = new Validator_Client_Mobile(paMobile.get(lnCtr));
+            
+            paMobile.get(lnCtr).setMobileNetwork(CommonUtils.classifyNetwork(paMobile.get(lnCtr).getContactNo()));
+            paMobile.get(lnCtr).setModifiedDate(poGRider.getServerDate());
+            
+            if (!validator.isEntryOkay()){
+                System.err.println(validator.getMessage());
+                System.exit(1);
+            }
+            obj = paMobile.get(lnCtr).saveRecord();
+
+        }    
+        
+        return obj;
+    }
+    
+    
+    private JSONObject saveAddress(){
+        
+        JSONObject obj = new JSONObject();
+        if (paAddress.size()<= 0){
+            obj.put("result", "error");
+            obj.put("message", "No client address detected. Please encode client address.");
+            return obj;
+        }
+        
+        int lnCtr;
+        String lsSQL;
+        
+        for (lnCtr = 0; lnCtr <= paAddress.size() -1; lnCtr++){
+            paAddress.get(lnCtr).setClientID(poClient.getClientID());
+            Validator_Client_Address validator = new Validator_Client_Address(paAddress.get(lnCtr));
+            
+            paAddress.get(lnCtr).setModifiedDate(poGRider.getServerDate());
+            
+            if (!validator.isEntryOkay()){
+                System.err.println(validator.getMessage());
+                System.exit(1);
+            }
+            obj = paAddress.get(lnCtr).saveRecord();
+
+        }    
+        
+        return obj;
+    }
+    
+    
+    private JSONObject saveEmail(){
+        
+        JSONObject obj = new JSONObject();
+        if (paMail.size()<= 0){
+            obj.put("result", "error");
+            obj.put("message", "No client email address detected. Please encode client email address.");
+            return obj;
+        }
+        
+        int lnCtr;
+        String lsSQL;
+        
+        for (lnCtr = 0; lnCtr <= paMail.size() -1; lnCtr++){
+            paMail.get(lnCtr).setClientID(poClient.getClientID());
+            Validator_Client_Mail validator = new Validator_Client_Mail(paMail.get(lnCtr));
+            
+            paMail.get(lnCtr).setModifiedDate(poGRider.getServerDate());
+            
+            if (!validator.isEntryOkay()){
+                System.err.println(validator.getMessage());
+                System.exit(1);
+            }
+            obj = paMail.get(lnCtr).saveRecord();
+
+        }    
+        
+        return obj;
+    }
+    private JSONObject saveInstitution (){
+        
+        JSONObject obj = new JSONObject();
+        if (paInsContc.size()<= 0){
+            obj.put("result", "error");
+            obj.put("message", "No contact person detected. Please encode contact person .");
+            return obj;
+        }
+        
+        int lnCtr;
+        String lsSQL;
+        
+        for (lnCtr = 0; lnCtr <= paInsContc.size() -1; lnCtr++){
+            paInsContc.get(lnCtr).setClientID(poClient.getClientID());
+            Validator_Client_Institution_Contact validator = new Validator_Client_Institution_Contact(paInsContc.get(lnCtr));
+            
+            paInsContc.get(lnCtr).setModifiedDate(poGRider.getServerDate());
+            
+            if (!validator.isEntryOkay()){
+                System.err.println(validator.getMessage());
+                System.exit(1);
+            }
+            obj = paInsContc.get(lnCtr).saveRecord();
+
+        }    
+        
+        return obj;
+    }
+    
+    private JSONObject saveSocialAccount (){
+        
+        JSONObject obj = new JSONObject();
+        if (paSocMed.size()<= 0){
+            obj.put("result", "error");
+            obj.put("message", "No social media account detected. Please encode social media account.");
+            return obj;
+        }
+        
+        int lnCtr;
+        String lsSQL;
+        
+        for (lnCtr = 0; lnCtr <= paSocMed.size() -1; lnCtr++){
+            paSocMed.get(lnCtr).setClientID(poClient.getClientID());
+            Validator_Client_Social_Media validator = new Validator_Client_Social_Media(paSocMed.get(lnCtr));
+            
+            paSocMed.get(lnCtr).setModifiedDate(poGRider.getServerDate());
+            
+            if (!validator.isEntryOkay()){
+                System.err.println(validator.getMessage());
+                System.exit(1);
+            }
+            obj = paSocMed.get(lnCtr).saveRecord();
+
+        }    
+        
+        return obj;
+    }
     
     private Connection setConnection(){
         Connection foConn;
         
         if (pbWtParent){
-            foConn = (Connection) poAppDrver.getConnection();
-            if (foConn == null) foConn = (Connection) poAppDrver.doConnect();
-        }else foConn = (Connection) poAppDrver.doConnect();
+            foConn = (Connection) poGRider.getConnection();
+            if (foConn == null) foConn = (Connection) poGRider.doConnect();
+        }else foConn = (Connection) poGRider.doConnect();
         
         return foConn;
     }
+
+    @Override
+    public void setRecordStatus(String string) {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
+
+    @Override
+    public Object getModel() {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
+    
 }

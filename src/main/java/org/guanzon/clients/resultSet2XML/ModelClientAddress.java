@@ -36,23 +36,29 @@ public class ModelClientAddress {
         System.setProperty("sys.default.path.metadata", "D:/GGC_Maven_Systems/config/metadata/Model_Client_Address.xml");
         
         
-        String lsSQL = "SELECT" +
-                    " a.sAddrssID" +
-                    ", a.sClientID" +
-                    ", a.sHouseNox" +
-                    ", a.sAddressx" +
-                    ", a.sBrgyIDxx" +
-                    ", a.sTownIDxx" +
-                    ", a.nLatitude" +
-                    ", a.nLongitud" +
-                    ", a.cPrimaryx" +
-                    ", a.cRecdStat" +
-                    ", a.dModified" +
-                " FROM Client_Address a" + 
-                 " LEFT JOIN TownCity b ON a.sTownIDxx = b.sTownIDxx" +
-                            " LEFT JOIN Province c ON a.cProvince = c.sProvName" +
-                            " LEFT JOIN Barangay d ON a.sBrgyIDxx = d.sBrgyIDxx" +
-                        " WHERE 0=1";
+        String lsSQL = "SELECT " +
+                        "  a.sAddrssID, " +
+                        "  a.sClientID, " +
+                        "  a.sHouseNox, " +
+                        "  a.sAddressx, " +
+                        "  a.sBrgyIDxx, " +
+                        "  a.sTownIDxx, " +
+                        "  a.nLatitude, " +
+                        "  a.nLongitud, " +
+                        "  a.cPrimaryx, " +
+                        "  a.cRecdStat, " +
+                        "  a.dModified, " +
+                        "  b.sTownName    xTownName, " +
+                        "  d.sBrgyName    xBrgyName, " +
+                        "  c.sProvName    xProvName " +
+                        "FROM Client_Address a " +
+                        "  LEFT JOIN TownCity b " +
+                        "    ON a.sTownIDxx = b.sTownIDxx " +
+                        "  LEFT JOIN Province c " +
+                        "    ON b.sProvIDxx = c.sProvIDxx " +
+                        "  LEFT JOIN Barangay d " +
+                        "    ON a.sBrgyIDxx = d.sBrgyIDxx " +
+                        "WHERE 0=1";
         
         
         ResultSet loRS = instance.executeQuery(lsSQL);

@@ -18,6 +18,7 @@ import org.guanzon.validators.client.Validator_Client_Mail;
 import org.guanzon.validators.client.Validator_Client_Master;
 import org.guanzon.validators.client.Validator_Client_Mobile;
 import org.guanzon.validators.client.Validator_Client_Social_Media;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 /**
@@ -27,6 +28,11 @@ import org.json.simple.JSONObject;
 public class Client_Master implements GRecord{
     
     final String XML = "Model_Client_Master.xml";
+    final String MOBILE_XML = "Model_Client_Mobile.xml";
+    final String ADDRESS_XML = "Model_Client_Mobile.xml";
+    final String SOCMED_XML = "Model_Client_Mobile.xml";
+    final String EMAIL_XML = "Model_Client_Mobile.xml";
+    final String INSCONTACT_XML = "Model_Client_Mobile.xml";
     GRider poGRider;
     String psBranchCd;
     boolean pbWtParent;
@@ -114,22 +120,10 @@ public class Client_Master implements GRecord{
         pnEditMode = EditMode.READY;
         poJSON = new JSONObject();
         poJSON = poClient.openRecord(fsValue);
-        int lnCtr;
-        for(lnCtr = 0; lnCtr < paMail.size(); lnCtr++){
-            poJSON = paMail.get(lnCtr).openRecord(fsValue);
-        }
-        for(lnCtr = 0; lnCtr < paMobile.size(); lnCtr++){
-            poJSON = paMobile.get(lnCtr).openRecord(fsValue);
-        }
-        for(lnCtr = 0; lnCtr < paAddress.size(); lnCtr++){
-            poJSON = paAddress.get(lnCtr).openRecord((String) SearchClientAddress(fsValue).get("sAddrssID"));
-        }
-        for(lnCtr = 0; lnCtr < paInsContc.size(); lnCtr++){
-            poJSON = paInsContc.get(lnCtr).openRecord(fsValue);
-        }
-        for(lnCtr = 0; lnCtr < paSocMed.size(); lnCtr++){
-            poJSON = paSocMed.get(lnCtr).openRecord(fsValue);
-        }
+//        int lnCtr;
+        poJSON = SearchClientAddress(fsValue);
+//        poJSON = SearchClientMobile(fsValue);
+        
         return poJSON;
     }
 
@@ -143,7 +137,6 @@ public class Client_Master implements GRecord{
 
     @Override
     public JSONObject saveRecord() {
-        pnEditMode = EditMode.READY;
         
         poJSON = new JSONObject();
         
@@ -152,8 +145,8 @@ public class Client_Master implements GRecord{
             System.out.println("beginTrans");
         }
         
+        poClient.setFullName(poClient.getLastName() + ", " + poClient.getFirstName() + " " + poClient.getSuffixName() + " " + poClient.getMiddleName());
         Validator_Client_Master validator = new Validator_Client_Master(poClient);
-        
         if (!validator.isEntryOkay()){
             poJSON.put("result", "success");
             poJSON.put("message", validator.getMessage());
@@ -164,13 +157,14 @@ public class Client_Master implements GRecord{
             poGRider.rollbackTrans();
             return poJSON;
         }
-        poJSON =  saveMobile();
+
+        poJSON =  saveAddress();
         if("error".equalsIgnoreCase((String)poJSON.get("result"))){
             
             poGRider.rollbackTrans();
             return poJSON;
         }
-        poJSON =  saveAddress();
+        poJSON =  saveMobile();
         if("error".equalsIgnoreCase((String)poJSON.get("result"))){
             
             poGRider.rollbackTrans();
@@ -238,18 +232,9 @@ public class Client_Master implements GRecord{
                 return poJSON;
             }
             paMobile.add(new Model_Client_Mobile(poGRider.getConnection(), poGRider));
+            paMobile.get(paMobile.size()-1).newRecord();
 
             paMobile.get(paMobile.size()-1).setClientID(poClient.getClientID());
-//            if (!paMobile.get(paMobile.size()-1).getContactNo().isEmpty()){
-//                paMobile.add(new Model_Client_Mobile(poGRider.getConnection(), poGRider));
-//                paMobile.get(paMobile.size()-1).setValue("sClientID", poClient.getClientID());
-//                poJSON.put("result", "success");
-//                poJSON.put("message", "Mobile No. add record.");
-//            } else {
-//                poJSON.put("result", "error");
-//                poJSON.put("message", "Last contact information has no contact number.");
-//                return poJSON;
-//            }
         }
         
         return poJSON;
@@ -269,15 +254,28 @@ public class Client_Master implements GRecord{
             poJSON.put("result", "success");
             poJSON.put("message", "Email address add record.");
         } else {
-            if (paMail.get(paMail.size()-1).getEmail().isEmpty()){
-                paMail.add(new Model_Client_Mail(poGRider.getConnection(), poGRider));
-                poJSON.put("result", "success");
-                poJSON.put("message", "Email address add record.");
-            } else {
+            Validator_Client_Mail  validator = new Validator_Client_Mail(paMail.get(paMail.size()-1));
+            if(!validator.isEntryOkay()){
                 poJSON.put("result", "error");
-                poJSON.put("message", "Last contact information has no email address.");
+                poJSON.put("message", validator.getMessage());
                 return poJSON;
             }
+            paMail.add(new Model_Client_Mail(poGRider.getConnection(), poGRider));
+            paMail.get(paMail.size()-1).newRecord();
+
+            paMail.get(paMail.size()-1).setClientID(poClient.getClientID());
+            
+            poJSON.put("result", "success");
+            poJSON.put("message", "Email address add record.");
+//            if (paMail.get(paMail.size()-1).getEmail().isEmpty()){
+//                paMail.add(new Model_Client_Mail(poGRider.getConnection(), poGRider));
+//                poJSON.put("result", "success");
+//                poJSON.put("message", "Email address add record.");
+//            } else {
+//                poJSON.put("result", "error");
+//                poJSON.put("message", "Last contact information has no email address.");
+//                return poJSON;
+//            }
         }
         return poJSON;
     }
@@ -327,7 +325,7 @@ public class Client_Master implements GRecord{
                 return poJSON;
             }
             paAddress.add(new Model_Client_Address(poGRider.getConnection(), poGRider));
-
+            paAddress.get(paAddress.size()-1).newRecord();
             paAddress.get(paAddress.size()-1).setClientID(poClient.getClientID());
 //            if (!paAddress.get(paAddress.size()-1).getAddress().isEmpty()){
 //                paAddress.add(new Model_Client_Address(poGRider.getConnection(), poGRider));
@@ -365,7 +363,7 @@ public class Client_Master implements GRecord{
                 return poJSON;
             }
             paInsContc.add(new Model_Client_Institution_Contact(poGRider.getConnection(), poGRider));
-
+            paInsContc.get(paInsContc.size()-1).newRecord();
             paInsContc.get(paInsContc.size()-1).setClientID(poClient.getClientID());
 //            if (paInsContc.get(paInsContc.size()-1).getContactID().isEmpty()){
 //                paInsContc.add(new Model_Client_Institution_Contact(poGRider.getConnection(), poGRider));
@@ -407,6 +405,7 @@ public class Client_Master implements GRecord{
 //                System.exit(1);
             }
             paSocMed.add(new Model_Client_Social_Media(poGRider.getConnection(), poGRider));
+            paSocMed.get(paSocMed.size()-1).newRecord();
             paSocMed.get(paSocMed.size()-1).setClientID(poClient.getClientID());
             poJSON.put("result", "success");
             poJSON.put("message", "Social media add record.");
@@ -514,8 +513,6 @@ public class Client_Master implements GRecord{
     public Object getAddress(int fnRow, int fnIndex){return paAddress.get(fnRow).getValue(fnIndex);}
     public Object getAddress(int fnRow, String fsIndex){return paAddress.get(fnRow).getValue(fsIndex);}
     
-    
-    
     public void setInsContact(int fnRow, int fnIndex, Object foValue){ paInsContc.get(fnRow).setValue(fnIndex, foValue);}
     public void setInsContact(int fnRow, String fsIndex, Object foValue){ paInsContc.get(fnRow).setValue(fsIndex, foValue);}
     public Object getInsContact(int fnRow, int fnIndex){return paInsContc.get(fnRow).getValue(fnIndex);}
@@ -528,71 +525,37 @@ public class Client_Master implements GRecord{
     public Object getSocialMed(int fnRow, String fsIndex){return paSocMed.get(fnRow).getValue(fsIndex);}
     
     
-    public JSONObject SearchClient(String fsValue, boolean fbByCode){
-        String lsHeader = "ID»Name»Address»Last Name»First Name»Midd Name»Suffix";
-        String lsColName = "sClientID»sClientNm»xAddressx»sLastName»sFrstName»sMiddName»sSuffixNm";
-        String lsColCrit = "a.sClientID»a.sClientNm»CONCAT(b.sHouseNox, ' ', b.sAddressx, ', ', c.sTownName, ' ', d.sProvName)»a.sLastName»a.sFrstName»a.sMiddName»a.sSuffixNm";
-        String lsSQL = "SELECT " +
-                            "  a.sClientID" +
-                            ", a.sClientNm" +
-                            ", CONCAT(b.sHouseNox, ' ', b.sAddressx, ', ', c.sTownName, ' ', d.sProvName) xAddressx" +
-                            ", a.sLastName" + 
-                            ", a.sFrstName" + 
-                            ", a.sMiddName" + 
-                            ", a.sSuffixNm" + 
-                        " FROM Client_Master a" + 
-                            " LEFT JOIN Client_Address b" + 
-                                " ON a.sClientID = b.sClientID" + 
-                                    " AND b.nPriority = 1" +
-                            " LEFT JOIN TownCity c" + 
-                                " ON b.sTownIDxx = c.sTownIDxx" + 
-                            " LEFT JOIN Client_Mobile d" +
-                                " ON c.sProvIDxx = d.sProvIDxx";
-        
-        poJSON = ShowDialogFX.Search(poGRider, 
-                                        lsSQL, 
-                                        fsValue, 
-                                        lsHeader, 
-                                        lsColName, 
-                                        lsColCrit, 
-                                        fbByCode ? 0 :1);
-        return openRecord((String) poJSON.get("sClientID"));
-    }
-    
-    public JSONObject SearchClientAddress(String fsValue){
-        String lsHeader = "ID»Address";
-        String lsColName = "sAddrssID»xAddressx";
-        String lsColCrit = "a.sAddrssID»CONCAT(b.sHouseNox, ' ', b.sAddressx, ', ', c.sTownName, ' ', d.sProvName)";
-        String lsSQL = "SELECT " +
-                            "  a.sAddrssID" +
-                            ", CONCAT(a.sHouseNox, ' ', a.sAddressx, ', ', c.sTownName, ' ', d.sProvName) xAddressx" +
-                        " FROM Client_Address a" + 
-                            " LEFT JOIN TownCity c" + 
-                                " ON b.sTownIDxx = c.sTownIDxx" + 
-                            " LEFT JOIN Client_Mobile d" +
-                                " ON c.sProvIDxx = d.sProvIDxx";
-        lsSQL = MiscUtil.addCondition(lsSQL, "a.sClientID = " + SQLUtil.toSQL(fsValue) + " AND a.nPriority = 1");
-        
-        ResultSet loRS = poGRider.executeQuery(lsSQL);
-
-        try {
-            while (loRS.next()){
-                paAddress.add(new Model_Client_Address(poGRider.getConnection(), poGRider));
-                for (int lnCtr = 1; lnCtr <= loRS.getMetaData().getColumnCount(); lnCtr++){
-                    paAddress.get(lnCtr).setValue(lnCtr, loRS.getObject(lnCtr));
-                }
-
-                pnEditMode = EditMode.UPDATE;
-
-                poJSON.put("result", "success");
-                poJSON.put("message", "Record loaded successfully.");
-            } 
-        } catch (SQLException e) {
-            poJSON.put("result", "error");
-            poJSON.put("message", e.getMessage());
-        }
-        return ShowDialogFX.Browse(poGRider, loRS, lsHeader, lsColName);
-    }
+//    public JSONObject SearchClient(String fsValue, boolean fbByCode){
+//        String lsHeader = "ID»Name»Address»Last Name»First Name»Midd Name»Suffix";
+//        String lsColName = "sClientID»sClientNm»xAddressx»sLastName»sFrstName»sMiddName»sSuffixNm";
+//        String lsColCrit = "a.sClientID»a.sClientNm»CONCAT(b.sHouseNox, ' ', b.sAddressx, ', ', c.sTownName, ' ', d.sProvName)»a.sLastName»a.sFrstName»a.sMiddName»a.sSuffixNm";
+//        String lsSQL = "SELECT " +
+//                            "  a.sClientID" +
+//                            ", a.sClientNm" +
+//                            ", CONCAT(b.sHouseNox, ' ', b.sAddressx, ', ', c.sTownName, ' ', d.sProvName) xAddressx" +
+//                            ", a.sLastName" + 
+//                            ", a.sFrstName" + 
+//                            ", a.sMiddName" + 
+//                            ", a.sSuffixNm" + 
+//                        " FROM Client_Master a" + 
+//                            " LEFT JOIN Client_Address b" + 
+//                                " ON a.sClientID = b.sClientID" + 
+//                                    " AND b.nPriority = 1" +
+//                            " LEFT JOIN TownCity c" + 
+//                                " ON b.sTownIDxx = c.sTownIDxx" + 
+//                            " LEFT JOIN Client_Mobile d" +
+//                                " ON c.sProvIDxx = d.sProvIDxx";
+//        
+//        poJSON = ShowDialogFX.Search(poGRider, 
+//                                        lsSQL, 
+//                                        fsValue, 
+//                                        lsHeader, 
+//                                        lsColName, 
+//                                        lsColCrit, 
+//                                        fbByCode ? 0 :1);
+//        return openRecord((String) poJSON.get("sClientID"));
+//    }
+//    
     private JSONObject saveMobile(){
         
         JSONObject obj = new JSONObject();
@@ -613,8 +576,9 @@ public class Client_Master implements GRecord{
             paMobile.get(lnCtr).setModifiedDate(poGRider.getServerDate());
             
             if (!validator.isEntryOkay()){
-                System.err.println(validator.getMessage());
-                System.exit(1);
+                obj.put("result", "error");
+                obj.put("message", validator.getMessage());
+                return obj;
             }
             obj = paMobile.get(lnCtr).saveRecord();
 
@@ -643,8 +607,10 @@ public class Client_Master implements GRecord{
             paAddress.get(lnCtr).setModifiedDate(poGRider.getServerDate());
             
             if (!validator.isEntryOkay()){
-                System.err.println(validator.getMessage());
-                System.exit(1);
+                obj.put("result", "error");
+                obj.put("message", validator.getMessage());
+                return obj;
+            
             }
             obj = paAddress.get(lnCtr).saveRecord();
 
@@ -673,8 +639,10 @@ public class Client_Master implements GRecord{
             paMail.get(lnCtr).setModifiedDate(poGRider.getServerDate());
             
             if (!validator.isEntryOkay()){
-                System.err.println(validator.getMessage());
-                System.exit(1);
+                obj.put("result", "error");
+                obj.put("message", validator.getMessage());
+                return obj;
+            
             }
             obj = paMail.get(lnCtr).saveRecord();
 
@@ -701,8 +669,10 @@ public class Client_Master implements GRecord{
             paInsContc.get(lnCtr).setModifiedDate(poGRider.getServerDate());
             
             if (!validator.isEntryOkay()){
-                System.err.println(validator.getMessage());
-                System.exit(1);
+                obj.put("result", "error");
+                obj.put("message", validator.getMessage());
+                return obj;
+            
             }
             obj = paInsContc.get(lnCtr).saveRecord();
 
@@ -730,8 +700,10 @@ public class Client_Master implements GRecord{
             paSocMed.get(lnCtr).setModifiedDate(poGRider.getServerDate());
             
             if (!validator.isEntryOkay()){
-                System.err.println(validator.getMessage());
-                System.exit(1);
+                obj.put("result", "error");
+                obj.put("message", validator.getMessage());
+                return obj;
+            
             }
             obj = paSocMed.get(lnCtr).saveRecord();
 
@@ -759,6 +731,246 @@ public class Client_Master implements GRecord{
     @Override
     public Object getModel() {
         throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
+    
+    public JSONObject searchCitizenship(String fsValue, boolean fbByCode) {
+      
+        
+        String lsSQL = "SELECT" + 
+                    "  sCntryCde" +
+                    ", sNational" +
+                " FROM Country " +
+                " WHERE cRecdStat = '1' " + 
+                " AND (sNational IS NOT NULL AND sNational != '') " + 
+                " ORDER BY sCntryCde ";
+               
+        if (fbByCode)
+            lsSQL = MiscUtil.addCondition(lsSQL, "sCntryCde = " + SQLUtil.toSQL(fsValue));
+        else
+            lsSQL = MiscUtil.addCondition(lsSQL, "sNational LIKE " + SQLUtil.toSQL(fsValue + "%"));
+        
+        JSONObject loJSON;
+        System.out.println(lsSQL);
+        loJSON = ShowDialogFX.Search(
+                        poGRider, 
+                        lsSQL, 
+                        fsValue, 
+                        "Code»Nationality", 
+                        "sCntryCde»sNational", 
+                        "sCntryCde»sNational", 
+                        fbByCode ? 0 : 1);
+            
+            if (loJSON != null) {
+                setMaster(11,(String) loJSON.get("sCntryCde"));
+                loJSON.put("result", "success");
+                loJSON.put("message", "Search citizenship success.");
+                return loJSON;
+            }else {
+                loJSON.put("result", "success");
+                loJSON.put("message", "No record selected.");
+                return loJSON;
+            }
+    }
+    
+    
+    public JSONObject searchBirthPlce(String fsValue, boolean fbByCode) {
+      
+        
+        String lsSQL = "SELECT" + 
+                    "  a.sTownIDxx" +
+                    ", CONCAT(a.sTownName, ', ', b.sProvName) AS xBrthPlce" +
+                " FROM TownCity a " +
+                " INNER JOIN Province b "+
+                "   ON a.sProvIDxx = b.sProvIDxx " +
+                " WHERE a.cRecdStat = 1 " + 
+                " ORDER BY a.sTownName ASC";
+        if (fbByCode)
+            lsSQL = MiscUtil.addCondition(lsSQL, "a.sTownIDxx = " + SQLUtil.toSQL(fsValue));
+        else
+            lsSQL = MiscUtil.addCondition(lsSQL, "a.sTownName LIKE " + SQLUtil.toSQL(fsValue + "%"));
+        
+      
+        JSONObject loJSON;
+        
+        loJSON = ShowDialogFX.Search(
+                        poGRider, 
+                        lsSQL, 
+                        fsValue, 
+                        "Code»Birth Place", 
+                        "a.sTownIDxx»xBrthPlce", 
+                        "a.sTownIDxx»CONCAT(a.sTownName, ', ', b.sProvName)", 
+                        fbByCode ? 0 : 1);
+            
+            if (loJSON != null) {
+                setMaster(13,(String) loJSON.get("sTownIDxx"));
+                loJSON.put("result", "success");
+                loJSON.put("message", "Search birth place success.");
+                return loJSON;
+            }else {
+                loJSON.put("result", "success");
+                loJSON.put("message", "No record selected.");
+                return loJSON;
+            }
+    }
+    
+    
+    public JSONObject SearchBarangayAddress(int lnRow,String fsValue, boolean fbByCode){
+        if(paAddress.get(lnRow).getTownID().isEmpty()){
+            JSONObject loJSON = new JSONObject();
+            loJSON.put("result", "error");
+            loJSON.put("message", "Kindly choose the town or city first.");
+            return loJSON;
+        }
+        return paAddress.get(lnRow).SearchBarangay(fsValue, fbByCode);
+    }
+    public JSONObject SearchTownAddress(int lnRow,String fsValue, boolean fbByCode){
+        return paAddress.get(lnRow).SearchTown(fsValue, fbByCode);
+    }
+    public JSONObject SearchClient(String fsValue, boolean fbByCode){
+        String lsHeader = "ID»Name»Address»Last Name»First Name»Midd Name»Suffix";
+        String lsColName = "sClientID»sCompnyNm»xAddressx»sLastName»sFrstName»sMiddName»sSuffixNm";
+        String lsColCrit = "a.sClientID»a.sCompnyNm»CONCAT(b.sHouseNox, ' ', b.sAddressx, ', ', c.sTownName, ' ', d.sProvName)»a.sLastName»a.sFrstName»a.sMiddName»a.sSuffixNm";
+        String lsSQL = "SELECT " +
+                            "  a.sClientID" +
+                            ", a.sCompnyNm" +
+                            ", CONCAT(b.sHouseNox, ' ', b.sAddressx, ', ', c.sTownName, ' ', d.sProvName) xAddressx" +
+                            ", a.sLastName" + 
+                            ", a.sFrstName" + 
+                            ", a.sMiddName" + 
+                            ", a.sSuffixNm" + 
+                        " FROM Client_Master a" + 
+                            " LEFT JOIN Client_Address b" + 
+                                " ON a.sClientID = b.sClientID" + 
+                            " LEFT JOIN TownCity c" + 
+                                " ON b.sTownIDxx = c.sTownIDxx" + 
+                            " LEFT JOIN Province d" +
+                                " ON c.sProvIDxx = d.sProvIDxx";
+        if (fbByCode)
+            lsSQL = MiscUtil.addCondition(lsSQL, "a.sClientID = " + SQLUtil.toSQL(fsValue));
+        else
+            lsSQL = MiscUtil.addCondition(lsSQL, "a.sCompnyNm LIKE " + SQLUtil.toSQL("%" + fsValue + "%"));
+       
+            
+      
+        JSONObject loJSON;
+        String lsValue;
+            
+            
+       
+        System.out.println("lsSQL = " + lsSQL);
+        loJSON = ShowDialogFX.Search(poGRider, 
+                                        lsSQL, 
+                                        fsValue, 
+                                        lsHeader, 
+                                        lsColName, 
+                                        lsColCrit, 
+                                        fbByCode ? 0 :1);
+            
+            if (loJSON != null) {
+                
+                System.out.println("sClientID = " + (String) loJSON.get("sClientID"));
+                lsValue = (String) loJSON.get("sClientID");
+            }else {
+                loJSON.put("result", "error");
+                loJSON.put("message", "No record selected.");
+                return loJSON;
+            }
+        return openRecord(lsValue);
+    }
+    
+    public JSONObject SearchClientAddress(String fsValue){
+        String lsHeader = "ID»Address";
+        String lsColName = "sAddrssID»CONCAT(b.sHouseNox, ' ', b.sAddressx, ', ', c.sTownName, ' ', d.sProvName)";
+        String lsColCrit = "a.sAddrssID»CONCAT(b.sHouseNox, ' ', b.sAddressx, ', ', c.sTownName, ' ', d.sProvName)";
+        String lsSQL = "SELECT " +
+                        " a.sAddrssID" +
+                        ", a.sClientID" +
+                        ", a.sHouseNox" +
+                        ", a.sAddressx" +
+                        ", a.sBrgyIDxx" +
+                        ", a.sTownIDxx" +
+                        ", a.nLatitude" +
+                        ", a.nLongitud" +
+                        ", a.cPrimaryx" +
+                        ", a.cRecdStat" +
+                        ", a.dModified" +
+                        ", b.sTownName xTownName" +
+                        ", d.sBrgyName xBrgyName" +
+                        ", c.sProvName xProvName" +
+                " FROM Client_Address a" + 
+                 " LEFT JOIN TownCity b ON a.sTownIDxx = b.sTownIDxx" +
+                            " LEFT JOIN Province c ON a.cProvince = c.sProvName" +
+                            " LEFT JOIN Barangay d ON a.sBrgyIDxx = d.sBrgyIDxx";
+        lsSQL = MiscUtil.addCondition(lsSQL, "a.sClientID = " + SQLUtil.toSQL(fsValue));
+        
+        ResultSet loRS = poGRider.executeQuery(lsSQL);
+
+        try {
+            while (loRS.next()){
+                paAddress.add(new Model_Client_Address(poGRider.getConnection(), poGRider));
+                paAddress.get(paAddress.size()-1).openRecord(loRS.getString("sAddrssID"));
+                
+
+                pnEditMode = EditMode.UPDATE;
+
+                poJSON.put("result", "success");
+                poJSON.put("message", "Record loaded successfully.");
+            } 
+        } catch (SQLException e) {
+            poJSON.put("result", "error");
+            poJSON.put("message", e.getMessage());
+        }
+        return ShowDialogFX.Browse(poGRider, loRS, lsHeader, lsColName);
+    }
+    
+    public JSONObject SearchClientMobile(String fsValue){
+        String lsHeader = "ID»Address";
+        String lsColName = "sMobileID»sMobileNo";
+        String lsColCrit = "sMobileID»sMobileNo";
+        String lsSQL = "SELECT" +
+                    "  sMobileID" +
+                    ", sClientID" +
+                    ", sMobileNo" +
+                    ", cMobileTp" +
+                    ", cOwnerxxx" +
+                    ", cPrimaryx" +
+                    ", cIncdMktg" +
+                    ", nUnreachx" +
+                    ", dLastVeri" +
+                    ", dInactive" +
+                    ", nNoRetryx" +
+                    ", cInvalidx" +
+                    ", cConfirmd" +
+                    ", dConfirmd" +
+                    ", cSubscrbr" +
+                    ", dHoldMktg" +
+                    ", dMktgMsg1" +
+                    ", dMktgMsg2" +
+                    ", dMktgMsg3" +
+                    ", cNewMobil" +
+                    ", cRecdStat" +
+                    ", dModified" +
+                        " FROM Client_Mobile" ;
+        lsSQL = MiscUtil.addCondition(lsSQL, "sClientID = " + SQLUtil.toSQL(fsValue) + " AND a.nPriority = 1");
+        ResultSet loRS = poGRider.executeQuery(lsSQL);
+        JSONObject loJSON = new JSONObject();
+        try {
+            int lnctr = 0;
+            while (loRS.next()){
+                paMobile.add(new Model_Client_Mobile(poGRider.getConnection(), poGRider));
+                
+                paMobile.get(paMobile.size() - 1).openRecord(loRS.getString("sMobileID"));
+                lnctr++;
+                pnEditMode = EditMode.UPDATE;
+
+                poJSON.put("result", "success");
+                poJSON.put("message", "Record loaded successfully.");
+            } 
+        } catch (SQLException e) {
+            poJSON.put("result", "error");
+            poJSON.put("message", e.getMessage());
+        }
+        return poJSON;
     }
     
 }

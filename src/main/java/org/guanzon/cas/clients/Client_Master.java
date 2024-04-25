@@ -1,5 +1,11 @@
-package org.guanzon.clients;
+package org.guanzon.cas.clients;
 
+import org.guanzon.cas.model.clients.Model_Client_Institution_Contact;
+import org.guanzon.cas.model.clients.Model_Client_Master;
+import org.guanzon.cas.model.clients.Model_Client_Social_Media;
+import org.guanzon.cas.model.clients.Model_Client_Mail;
+import org.guanzon.cas.model.clients.Model_Client_Mobile;
+import org.guanzon.cas.model.clients.Model_Client_Address;
 import com.google.gson.Gson;
 import java.sql.Connection;
 import java.sql.ResultSet;

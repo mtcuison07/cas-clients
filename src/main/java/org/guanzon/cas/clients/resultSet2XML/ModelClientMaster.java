@@ -1,4 +1,4 @@
-package org.guanzon.clients.resultSet2XML;
+package org.guanzon.cas.clients.resultSet2XML;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

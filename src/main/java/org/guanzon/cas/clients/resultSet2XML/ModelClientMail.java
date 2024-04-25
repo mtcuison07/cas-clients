@@ -1,11 +1,11 @@
-package org.guanzon.clients.resultSet2XML;
+package org.guanzon.cas.clients.resultSet2XML;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import org.guanzon.appdriver.base.GRider;
 import org.guanzon.appdriver.base.MiscUtil;
 
-public class ModelClientContactPerson {
+public class ModelClientMail {
     public static void main (String [] args){
         String path;
         if(System.getProperty("os.name").toLowerCase().contains("win")){
@@ -25,32 +25,24 @@ public class ModelClientContactPerson {
 
         System.out.println("Connected");
         
-        System.setProperty("sys.default.path.metadata", "D:/GGC_Maven_Systems/config/metadata/Model_Client_Institution_Contact.xml");
+        System.setProperty("sys.default.path.metadata", "D:/GGC_Maven_Systems/config/metadata/Model_Client_eMail.xml");
         
         
         String lsSQL = "SELECT" +
-                    " sContctID" +
+                    "  sEmailIDx" +
                     ", sClientID" +
-                    ", sCPerson1" +
-                    ", sCPPosit1" +
-                    ", sMobileNo" +
-                    ", sTelNoxxx" +
-                    ", sFaxNoxxx" +
                     ", sEMailAdd" +
-                    ", sAccount1" +
-                    ", sAccount2" +
-                    ", sAccount3" +
-                    ", sRemarksx" +
+                    ", cOwnerxxx" +
                     ", cPrimaryx" +
                     ", cRecdStat" +
                     ", dModified" +
-                        " FROM Client_Institution_Contact_Person" +
+                        " FROM Client_eMail_Address" +
                         " WHERE 0=1";
         
         
         ResultSet loRS = instance.executeQuery(lsSQL);
         try {
-            if (MiscUtil.resultSet2XML(instance, loRS, System.getProperty("sys.default.path.metadata"), "Client_Institution_Contact_Person", "")){
+            if (MiscUtil.resultSet2XML(instance, loRS, System.getProperty("sys.default.path.metadata"), "Client_eMail_Address", "")){
                 System.out.println("ResultSet exported.");
             }
         } catch (SQLException e) {

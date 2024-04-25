@@ -18,12 +18,12 @@ import org.guanzon.appdriver.base.MiscUtil;
 import org.guanzon.appdriver.base.SQLUtil;
 import org.guanzon.appdriver.constant.EditMode;
 import org.guanzon.appdriver.iface.GRecord;
-import org.guanzon.validators.client.Validator_Client_Address;
-import org.guanzon.validators.client.Validator_Client_Institution_Contact;
-import org.guanzon.validators.client.Validator_Client_Mail;
-import org.guanzon.validators.client.Validator_Client_Master;
-import org.guanzon.validators.client.Validator_Client_Mobile;
-import org.guanzon.validators.client.Validator_Client_Social_Media;
+import org.guanzon.cas.validators.client.Validator_Client_Address;
+import org.guanzon.cas.validators.client.Validator_Client_Institution_Contact;
+import org.guanzon.cas.validators.client.Validator_Client_Mail;
+import org.guanzon.cas.validators.client.Validator_Client_Master;
+import org.guanzon.cas.validators.client.Validator_Client_Mobile;
+import org.guanzon.cas.validators.client.Validator_Client_Social_Media;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
@@ -54,8 +54,11 @@ public class Client_Master implements GRecord{
     ArrayList<Model_Client_Social_Media> paSocMed;
     ArrayList<Model_Client_Institution_Contact> paInsContc;
     
-    
+    public ClientTypes types;
     public JSONObject poJSON;
+    public void setType(ClientTypes type){
+        this.types = type;
+    }
     
     public Client_Master(GRider foAppDrver, boolean fbWtParent, String fsBranchCd){
         poGRider = foAppDrver;
@@ -154,54 +157,71 @@ public class Client_Master implements GRecord{
         poClient.setFullName(poClient.getLastName() + ", " + poClient.getFirstName() + " " + poClient.getSuffixName() + " " + poClient.getMiddleName());
         Validator_Client_Master validator = new Validator_Client_Master(poClient);
         if (!validator.isEntryOkay()){
-            poJSON.put("result", "success");
+            poJSON.put("result", "error");
             poJSON.put("message", validator.getMessage());
             return poJSON;
         }
-        poJSON =  poClient.saveRecord();
-        if("error".equalsIgnoreCase((String)poJSON.get("result"))){
+        if("error".equalsIgnoreCase((String)poClient.saveRecord().get("result")) && 
+                "error".equalsIgnoreCase((String)saveAddress().get("result")) && 
+                "error".equalsIgnoreCase((String)saveMobile().get("result")) && 
+                "error".equalsIgnoreCase((String)saveEmail().get("result")) && 
+                "error".equalsIgnoreCase((String)saveSocialAccount().get("result")) && 
+                "error".equalsIgnoreCase((String)saveInstitution().get("result"))  
+                ){
             poGRider.rollbackTrans();
-            return poJSON;
-        }
-
-        poJSON =  saveAddress();
-        if("error".equalsIgnoreCase((String)poJSON.get("result"))){
+//            return("error".equalsIgnoreCase((String)poClient.saveRecord().get("result")) && 
+//                "error".equalsIgnoreCase((String)saveAddress().get("result")) && 
+//                "error".equalsIgnoreCase((String)saveMobile().get("result")) && 
+//                "error".equalsIgnoreCase((String)saveEmail().get("result")) && 
+//                "error".equalsIgnoreCase((String)saveSocialAccount().get("result")) && 
+//                "error".equalsIgnoreCase((String)saveInstitution().get("result"));
             
-            poGRider.rollbackTrans();
-            return poJSON;
-        }
-        poJSON =  saveMobile();
-        if("error".equalsIgnoreCase((String)poJSON.get("result"))){
-            
-            poGRider.rollbackTrans();
-            return poJSON;
-        }
-        poJSON =  saveEmail();
-        
-        if("error".equalsIgnoreCase((String)poJSON.get("result"))){
-            
-            poGRider.rollbackTrans();
-            return poJSON;
-        }
-        poJSON =  saveSocialAccount();
-        
-        if("error".equalsIgnoreCase((String)poJSON.get("result"))){
-            
-            poGRider.rollbackTrans();
-            return poJSON;
-        }
-        poJSON =  saveInstitution();
-        
-        if("error".equalsIgnoreCase((String)poJSON.get("result"))){
-            
-            poGRider.rollbackTrans();
-            return poJSON;
-        }
-        
-        if (!pbWtParent) {
+        }else{
             poGRider.commitTrans();
             System.out.println("commitTrans");
         }
+////        poJSON =  poClient.saveRecord();
+//        else if("error".equalsIgnoreCase((String)poClient.saveRecord().get("result"))){
+//            poGRider.rollbackTrans();
+//            return poClient.saveRecord();
+//        }
+//
+////        poJSON =  saveAddress();
+//        else if("error".equalsIgnoreCase((String)saveAddress().get("result"))){
+//            
+//            poGRider.rollbackTrans();
+//            return saveAddress();
+//        }
+////        poJSON =  saveMobile();
+//        else if("error".equalsIgnoreCase((String)saveMobile().get("result"))){
+//            
+//            poGRider.rollbackTrans();
+//            return saveMobile();
+//        }
+////        poJSON =  saveEmail();
+//        
+//        else if("error".equalsIgnoreCase((String)saveEmail().get("result"))){
+//            saveEmail();
+//            poGRider.rollbackTrans();
+//            return poJSON;
+//        }
+//        else if("error".equalsIgnoreCase((String)saveSocialAccount().get("result"))){
+//            
+//            poGRider.rollbackTrans();
+//            return saveSocialAccount();
+//        }
+//        
+//        else if("error".equalsIgnoreCase((String)saveInstitution().get("result"))){
+//            
+//            poGRider.rollbackTrans();
+//            return saveInstitution();
+//        }
+//        else{
+//            if (!pbWtParent) {
+//            poGRider.commitTrans();
+//            System.out.println("commitTrans");
+//            }
+//        }
         return poJSON;
     }
 

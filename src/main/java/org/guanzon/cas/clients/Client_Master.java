@@ -80,7 +80,7 @@ public class Client_Master implements GRecord{
             pnEditMode = EditMode.ADDNEW;
             org.json.simple.JSONObject obj;
 
-            poClient = new Model_Client_Master(setConnection(), poGRider);
+            poClient = new Model_Client_Master(poGRider);
             Connection loConn = null;
             loConn = setConnection();
 
@@ -161,67 +161,50 @@ public class Client_Master implements GRecord{
             poJSON.put("message", validator.getMessage());
             return poJSON;
         }
-        if("error".equalsIgnoreCase((String)poClient.saveRecord().get("result")) && 
-                "error".equalsIgnoreCase((String)saveAddress().get("result")) && 
-                "error".equalsIgnoreCase((String)saveMobile().get("result")) && 
-                "error".equalsIgnoreCase((String)saveEmail().get("result")) && 
-                "error".equalsIgnoreCase((String)saveSocialAccount().get("result")) && 
-                "error".equalsIgnoreCase((String)saveInstitution().get("result"))  
-                ){
+        poJSON =  poClient.saveRecord();
+        if("error".equalsIgnoreCase((String)poJSON.get("result"))){
             poGRider.rollbackTrans();
-//            return("error".equalsIgnoreCase((String)poClient.saveRecord().get("result")) && 
-//                "error".equalsIgnoreCase((String)saveAddress().get("result")) && 
-//                "error".equalsIgnoreCase((String)saveMobile().get("result")) && 
-//                "error".equalsIgnoreCase((String)saveEmail().get("result")) && 
-//                "error".equalsIgnoreCase((String)saveSocialAccount().get("result")) && 
-//                "error".equalsIgnoreCase((String)saveInstitution().get("result"));
+            return poJSON;
+        }
+
+        poJSON =  saveAddress();
+        if("error".equalsIgnoreCase((String)poJSON.get("result"))){
             
-        }else{
+            poGRider.rollbackTrans();
+        return poJSON;
+        }
+        poJSON =  saveMobile();
+        if("error".equalsIgnoreCase((String)poJSON.get("result"))){
+            
+            poGRider.rollbackTrans();
+        return poJSON;
+        }
+        poJSON =  saveEmail();
+        if("error".equalsIgnoreCase((String)poJSON.get("result"))){
+            saveEmail();
+            poGRider.rollbackTrans();
+            return poJSON;
+        }
+        
+        poJSON =  saveSocialAccount();
+        if("error".equalsIgnoreCase((String)poJSON.get("result"))){
+            
+            poGRider.rollbackTrans();
+        return poJSON;
+        }
+        
+        poJSON =  saveInstitution();
+        if("error".equalsIgnoreCase((String)poJSON.get("result"))){
+            
+            poGRider.rollbackTrans();
+        return poJSON;
+        }
+        
+        if (!pbWtParent) {
             poGRider.commitTrans();
             System.out.println("commitTrans");
         }
-////        poJSON =  poClient.saveRecord();
-//        else if("error".equalsIgnoreCase((String)poClient.saveRecord().get("result"))){
-//            poGRider.rollbackTrans();
-//            return poClient.saveRecord();
-//        }
-//
-////        poJSON =  saveAddress();
-//        else if("error".equalsIgnoreCase((String)saveAddress().get("result"))){
-//            
-//            poGRider.rollbackTrans();
-//            return saveAddress();
-//        }
-////        poJSON =  saveMobile();
-//        else if("error".equalsIgnoreCase((String)saveMobile().get("result"))){
-//            
-//            poGRider.rollbackTrans();
-//            return saveMobile();
-//        }
-////        poJSON =  saveEmail();
-//        
-//        else if("error".equalsIgnoreCase((String)saveEmail().get("result"))){
-//            saveEmail();
-//            poGRider.rollbackTrans();
-//            return poJSON;
-//        }
-//        else if("error".equalsIgnoreCase((String)saveSocialAccount().get("result"))){
-//            
-//            poGRider.rollbackTrans();
-//            return saveSocialAccount();
-//        }
-//        
-//        else if("error".equalsIgnoreCase((String)saveInstitution().get("result"))){
-//            
-//            poGRider.rollbackTrans();
-//            return saveInstitution();
-//        }
-//        else{
-//            if (!pbWtParent) {
-//            poGRider.commitTrans();
-//            System.out.println("commitTrans");
-//            }
-//        }
+        
         return poJSON;
     }
 
@@ -244,7 +227,7 @@ public class Client_Master implements GRecord{
     public JSONObject addContact(){
         poJSON = new JSONObject();
         if (paMobile.size()<=0){
-            paMobile.add(new Model_Client_Mobile(poGRider.getConnection(), poGRider));
+            paMobile.add(new Model_Client_Mobile(poGRider));
             paMobile.get(0).newRecord();
             paMobile.get(0).setValue("sClientID", poClient.getClientID());
             poJSON.put("result", "success");
@@ -257,7 +240,7 @@ public class Client_Master implements GRecord{
                 poJSON.put("message", validator.getMessage());
                 return poJSON;
             }
-            paMobile.add(new Model_Client_Mobile(poGRider.getConnection(), poGRider));
+            paMobile.add(new Model_Client_Mobile(poGRider));
             paMobile.get(paMobile.size()-1).newRecord();
 
             paMobile.get(paMobile.size()-1).setClientID(poClient.getClientID());
@@ -275,7 +258,7 @@ public class Client_Master implements GRecord{
     public JSONObject addMail(){
         poJSON = new JSONObject();
         if (paMail.isEmpty()){
-            paMail.add(new Model_Client_Mail(poGRider.getConnection(), poGRider));
+            paMail.add(new Model_Client_Mail(poGRider));
             paMail.get(0).newRecord();
             poJSON.put("result", "success");
             poJSON.put("message", "Email address add record.");
@@ -286,7 +269,7 @@ public class Client_Master implements GRecord{
                 poJSON.put("message", validator.getMessage());
                 return poJSON;
             }
-            paMail.add(new Model_Client_Mail(poGRider.getConnection(), poGRider));
+            paMail.add(new Model_Client_Mail(poGRider));
             paMail.get(paMail.size()-1).newRecord();
 
             paMail.get(paMail.size()-1).setClientID(poClient.getClientID());
@@ -337,7 +320,7 @@ public class Client_Master implements GRecord{
     public JSONObject addAddress(){
         poJSON = new JSONObject();
         if (paAddress.isEmpty()){
-            paAddress.add(new Model_Client_Address(poGRider.getConnection(), poGRider));
+            paAddress.add(new Model_Client_Address(poGRider));
             paAddress.get(0).newRecord();
             paAddress.get(0).setClientID(poClient.getClientID());
             poJSON.put("result", "success");
@@ -350,7 +333,7 @@ public class Client_Master implements GRecord{
                 poJSON.put("message", validator.getMessage());
                 return poJSON;
             }
-            paAddress.add(new Model_Client_Address(poGRider.getConnection(), poGRider));
+            paAddress.add(new Model_Client_Address(poGRider));
             paAddress.get(paAddress.size()-1).newRecord();
             paAddress.get(paAddress.size()-1).setClientID(poClient.getClientID());
 //            if (!paAddress.get(paAddress.size()-1).getAddress().isEmpty()){
@@ -375,7 +358,7 @@ public class Client_Master implements GRecord{
     public JSONObject addInsContact(){
         poJSON = new JSONObject();
         if (paInsContc.isEmpty()){
-            paInsContc.add(new Model_Client_Institution_Contact(poGRider.getConnection(), poGRider));
+            paInsContc.add(new Model_Client_Institution_Contact(poGRider));
             paInsContc.get(0).newRecord();
             paInsContc.get(0).setClientID(poClient.getClientID());
             poJSON.put("result", "success");
@@ -388,18 +371,9 @@ public class Client_Master implements GRecord{
                 poJSON.put("message", validator.getMessage());
                 return poJSON;
             }
-            paInsContc.add(new Model_Client_Institution_Contact(poGRider.getConnection(), poGRider));
+            paInsContc.add(new Model_Client_Institution_Contact(poGRider));
             paInsContc.get(paInsContc.size()-1).newRecord();
             paInsContc.get(paInsContc.size()-1).setClientID(poClient.getClientID());
-//            if (paInsContc.get(paInsContc.size()-1).getContactID().isEmpty()){
-//                paInsContc.add(new Model_Client_Institution_Contact(poGRider.getConnection(), poGRider));
-//                poJSON.put("result", "success");
-//                poJSON.put("message", "Contact person add record.");
-//            } else {
-//                poJSON.put("result", "error");
-//                poJSON.put("message", "Last contact information has no contact person.");
-//                return poJSON;
-//            }
         }
         return poJSON;
     }
@@ -415,7 +389,7 @@ public class Client_Master implements GRecord{
     public JSONObject addSocialMedia(){
         poJSON = new JSONObject();
         if (paSocMed.isEmpty()){
-            paSocMed.add(new Model_Client_Social_Media(poGRider.getConnection(), poGRider));
+            paSocMed.add(new Model_Client_Social_Media(poGRider));
             paSocMed.get(0).newRecord();
             paSocMed.get(0).setClientID(poClient.getClientID());
             poJSON.put("result", "success");
@@ -427,23 +401,12 @@ public class Client_Master implements GRecord{
                 poJSON.put("result", "error");
                 poJSON.put("message", validator.getMessage());
                 return poJSON;
-//                System.err.println(validator.getMessage());
-//                System.exit(1);
             }
-            paSocMed.add(new Model_Client_Social_Media(poGRider.getConnection(), poGRider));
+            paSocMed.add(new Model_Client_Social_Media( poGRider));
             paSocMed.get(paSocMed.size()-1).newRecord();
             paSocMed.get(paSocMed.size()-1).setClientID(poClient.getClientID());
             poJSON.put("result", "success");
             poJSON.put("message", "Social media add record.");
-//            if (paSocMed.get(paSocMed.size()-1).getSocialID().isEmpty()){
-//                paSocMed.add(new Model_Client_Social_Media(poGRider.getConnection(), poGRider));
-//                poJSON.put("result", "success");
-//            poJSON.put("message", "Social media add record.");
-//            } else {
-//                poJSON.put("result", "error");
-//                poJSON.put("message", "Last social media information has no social account.");
-//                return poJSON;
-//            }
         }
         return poJSON;
     }
@@ -933,7 +896,7 @@ public class Client_Master implements GRecord{
 
         try {
             while (loRS.next()){
-                paAddress.add(new Model_Client_Address(poGRider.getConnection(), poGRider));
+                paAddress.add(new Model_Client_Address(poGRider));
                 paAddress.get(paAddress.size()-1).openRecord(loRS.getString("sAddrssID"));
                 
 
@@ -983,7 +946,7 @@ public class Client_Master implements GRecord{
         try {
             int lnctr = 0;
             while (loRS.next()){
-                paMobile.add(new Model_Client_Mobile(poGRider.getConnection(), poGRider));
+                paMobile.add(new Model_Client_Mobile(poGRider));
                 
                 paMobile.get(paMobile.size() - 1).openRecord(loRS.getString("sMobileID"));
                 lnctr++;

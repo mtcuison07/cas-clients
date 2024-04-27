@@ -55,11 +55,12 @@ public class ModelClientMaster {
                             ", a.cRecdStat" +
                             ", a.sModified" +
                             ", a.dModified" +
-                            ", b.sTownName xBirthPlc" +
+                            ", CONCAT(b.sTownName, ', ', e.sProvName) AS xBirthPlc" +
                             ", c.sCntryNme xCitizenx" +
                             ", d.sCompnyNm xSpouseNm" +
                         " FROM Client_Master a" +
                             " LEFT JOIN TownCity b ON a.sBirthPlc = b.sTownIDxx" +
+                            " LEFT JOIN Province e ON b.sProvIDxx = b.sProvIDxx" +
                             " LEFT JOIN Country c ON a.sCitizenx = c.sCntryCde" +
                             " LEFT JOIN Client_Master d ON a.sSpouseID = d.sClientID" +
                         " WHERE 0=1";

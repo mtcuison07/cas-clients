@@ -9,8 +9,8 @@ package org.guanzon.cas.clients;
  * @author User
  */
 public enum ClientTypes {
-    NEW,
-    INDIVIDUAL,
+    PARAMETER,
     COMPANY,
+    INDIVIDUAL,
     STANDARD;
 }

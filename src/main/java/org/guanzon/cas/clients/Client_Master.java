@@ -18,12 +18,14 @@ import org.guanzon.appdriver.base.MiscUtil;
 import org.guanzon.appdriver.base.SQLUtil;
 import org.guanzon.appdriver.constant.EditMode;
 import org.guanzon.appdriver.iface.GRecord;
-import org.guanzon.cas.validators.client.Validator_Client_Address;
-import org.guanzon.cas.validators.client.Validator_Client_Institution_Contact;
-import org.guanzon.cas.validators.client.Validator_Client_Mail;
-import org.guanzon.cas.validators.client.Validator_Client_Master;
-import org.guanzon.cas.validators.client.Validator_Client_Mobile;
-import org.guanzon.cas.validators.client.Validator_Client_Social_Media;
+import org.guanzon.cas.validators.ValidatorFactory;
+import org.guanzon.cas.validators.ValidatorInterface;
+import org.guanzon.cas.validators.client.parameter.Validator_Client_Address;
+import org.guanzon.cas.validators.client.parameter.Validator_Client_Institution_Contact;
+import org.guanzon.cas.validators.client.parameter.Validator_Client_Mail;
+import org.guanzon.cas.validators.client.parameter.Validator_Client_Master;
+import org.guanzon.cas.validators.client.parameter.Validator_Client_Mobile;
+import org.guanzon.cas.validators.client.parameter.Validator_Client_Social_Media;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
@@ -54,9 +56,9 @@ public class Client_Master implements GRecord{
     ArrayList<Model_Client_Social_Media> paSocMed;
     ArrayList<Model_Client_Institution_Contact> paInsContc;
     
-    public ClientTypes types;
+    public ValidatorFactory.ClientTypes types;
     public JSONObject poJSON;
-    public void setType(ClientTypes type){
+    public void setType(ValidatorFactory.ClientTypes type){
         this.types = type;
     }
     
@@ -128,10 +130,40 @@ public class Client_Master implements GRecord{
     public JSONObject openRecord(String fsValue) {
         pnEditMode = EditMode.READY;
         poJSON = new JSONObject();
+        
+        poClient = new Model_Client_Master(poGRider);
         poJSON = poClient.openRecord(fsValue);
-//        int lnCtr;
-        poJSON = SearchClientAddress(fsValue);
-//        poJSON = SearchClientMobile(fsValue);
+        
+        poJSON = OpenClientAddress(fsValue);
+        switch (types) {
+            case PARAMETER:
+                poJSON = OpenClientMobile(fsValue);
+                poJSON = OpenClientMail(fsValue);
+                poJSON = OpenClientSocialAccount(fsValue);
+                poJSON = OpenClientInsContctPerson(fsValue);
+                
+                break;
+            case COMPANY:
+                poJSON = OpenClientInsContctPerson(fsValue);
+                
+                break;
+            case INDIVIDUAL:
+                poJSON = OpenClientMobile(fsValue);
+                poJSON = OpenClientMail(fsValue);
+                poJSON = OpenClientSocialAccount(fsValue);
+                
+                break;
+            case STANDARD:
+                
+                poJSON = OpenClientMobile(fsValue);
+                break;
+        }
+//        poClient = new Model_Client_Master(poGRider);
+//        poJSON = poClient.openRecord(fsValue);
+////        int lnCtr;
+//        poJSON = OpenClientAddress(fsValue);
+//        poJSON = OpenClientMobile(fsValue);
+                        
         
         return poJSON;
     }
@@ -139,71 +171,86 @@ public class Client_Master implements GRecord{
     @Override
     public JSONObject updateRecord() {
         pnEditMode = EditMode.UPDATE;
-        JSONObject obj = new JSONObject();
-        obj.put("pnEditMode", pnEditMode);
-        return obj;
+        poJSON.put("result", "success");
+        poJSON.put("message", "Update mode success.");
+        return poJSON;
     }
 
     @Override
     public JSONObject saveRecord() {
         
-        poJSON = new JSONObject();
-        
-        if (!pbWtParent){
-            poGRider.beginTrans();
-            System.out.println("beginTrans");
-        }
-        
-        poClient.setFullName(poClient.getLastName() + ", " + poClient.getFirstName() + " " + poClient.getSuffixName() + " " + poClient.getMiddleName());
-        Validator_Client_Master validator = new Validator_Client_Master(poClient);
+        poJSON = new JSONObject();  
+        ValidatorInterface validator = ValidatorFactory.make(types,  ValidatorFactory.TYPE.Client_Master, poClient);
         if (!validator.isEntryOkay()){
             poJSON.put("result", "error");
             poJSON.put("message", validator.getMessage());
             return poJSON;
         }
+        
+        if (!pbWtParent) poGRider.beginTrans();
+        
         poJSON =  poClient.saveRecord();
         if("error".equalsIgnoreCase((String)poJSON.get("result"))){
-            poGRider.rollbackTrans();
+            if (!pbWtParent) poGRider.rollbackTrans();
             return poJSON;
         }
 
         poJSON =  saveAddress();
         if("error".equalsIgnoreCase((String)poJSON.get("result"))){
-            
-            poGRider.rollbackTrans();
-        return poJSON;
-        }
-        poJSON =  saveMobile();
-        if("error".equalsIgnoreCase((String)poJSON.get("result"))){
-            
-            poGRider.rollbackTrans();
-        return poJSON;
-        }
-        poJSON =  saveEmail();
-        if("error".equalsIgnoreCase((String)poJSON.get("result"))){
-            saveEmail();
-            poGRider.rollbackTrans();
+            if (!pbWtParent) poGRider.rollbackTrans();
             return poJSON;
         }
         
-        poJSON =  saveSocialAccount();
-        if("error".equalsIgnoreCase((String)poJSON.get("result"))){
+        switch(types){
             
-            poGRider.rollbackTrans();
-        return poJSON;
+            case INDIVIDUAL:
+            case PARAMETER:
+                poJSON =  saveMobile();
+                if("error".equalsIgnoreCase((String)poJSON.get("result"))){
+                    if (!pbWtParent) poGRider.rollbackTrans();
+                    return poJSON;
+                }
+                
+                poJSON =  saveEmail();
+                if("error".equalsIgnoreCase((String)poJSON.get("result"))){
+                    if (!pbWtParent) poGRider.rollbackTrans();
+                    return poJSON;
+                }
+                
+                poJSON =  saveSocialAccount();
+                if("error".equalsIgnoreCase((String)poJSON.get("result"))){
+                    if (!pbWtParent) poGRider.rollbackTrans();
+                    return poJSON;
+                }
+                if(types != ValidatorFactory.ClientTypes.INDIVIDUAL){
+                    poJSON =  saveInstitution();
+                    if("error".equalsIgnoreCase((String)poJSON.get("result"))){
+                        if (!pbWtParent) poGRider.rollbackTrans();
+                        return poJSON;
+                    }
+                }
+                break;
+            case COMPANY:
+                poJSON =  saveInstitution();
+                if("error".equalsIgnoreCase((String)poJSON.get("result"))){
+                    if (!pbWtParent) poGRider.rollbackTrans();
+                    return poJSON;
+                }
+                break;
+                
+            case STANDARD:
+                
+                poJSON =  saveMobile();
+                if("error".equalsIgnoreCase((String)poJSON.get("result"))){
+                    if (!pbWtParent) poGRider.rollbackTrans();
+                    return poJSON;
+                }
+                break;
+            
+        
         }
         
-        poJSON =  saveInstitution();
-        if("error".equalsIgnoreCase((String)poJSON.get("result"))){
-            
-            poGRider.rollbackTrans();
-        return poJSON;
-        }
-        
-        if (!pbWtParent) {
-            poGRider.commitTrans();
-            System.out.println("commitTrans");
-        }
+        if (!pbWtParent) poGRider.commitTrans();
         
         return poJSON;
     }
@@ -260,6 +307,7 @@ public class Client_Master implements GRecord{
         if (paMail.isEmpty()){
             paMail.add(new Model_Client_Mail(poGRider));
             paMail.get(0).newRecord();
+            paMail.get(0).setValue("sClientID", poClient.getClientID());
             poJSON.put("result", "success");
             poJSON.put("message", "Email address add record.");
         } else {
@@ -559,11 +607,12 @@ public class Client_Master implements GRecord{
         
         for (lnCtr = 0; lnCtr <= paMobile.size() -1; lnCtr++){
             paMobile.get(lnCtr).setClientID(poClient.getClientID());
-            Validator_Client_Mobile validator = new Validator_Client_Mobile(paMobile.get(lnCtr));
+//            Validator_Client_Mobile validator = new Validator_Client_Mobile(paMobile.get(lnCtr));
             
             paMobile.get(lnCtr).setMobileNetwork(CommonUtils.classifyNetwork(paMobile.get(lnCtr).getContactNo()));
             paMobile.get(lnCtr).setModifiedDate(poGRider.getServerDate());
             
+            ValidatorInterface validator = ValidatorFactory.make(types,  ValidatorFactory.TYPE.Client_Mobile, paMobile.get(lnCtr));
             if (!validator.isEntryOkay()){
                 obj.put("result", "error");
                 obj.put("message", validator.getMessage());
@@ -591,8 +640,9 @@ public class Client_Master implements GRecord{
         
         for (lnCtr = 0; lnCtr <= paAddress.size() -1; lnCtr++){
             paAddress.get(lnCtr).setClientID(poClient.getClientID());
-            Validator_Client_Address validator = new Validator_Client_Address(paAddress.get(lnCtr));
+//            Validator_Client_Address validator = new Validator_Client_Address(paAddress.get(lnCtr));
             
+            ValidatorInterface validator = ValidatorFactory.make(types,  ValidatorFactory.TYPE.Client_Address, paAddress.get(lnCtr));
             paAddress.get(lnCtr).setModifiedDate(poGRider.getServerDate());
             
             if (!validator.isEntryOkay()){
@@ -623,7 +673,9 @@ public class Client_Master implements GRecord{
         
         for (lnCtr = 0; lnCtr <= paMail.size() -1; lnCtr++){
             paMail.get(lnCtr).setClientID(poClient.getClientID());
-            Validator_Client_Mail validator = new Validator_Client_Mail(paMail.get(lnCtr));
+//            Validator_Client_Mail validator = new Validator_Client_Mail(paMail.get(lnCtr));
+
+            ValidatorInterface validator = ValidatorFactory.make(types,  ValidatorFactory.TYPE.Client_Mail, paMail.get(lnCtr));
             
             paMail.get(lnCtr).setModifiedDate(poGRider.getServerDate());
             
@@ -653,16 +705,24 @@ public class Client_Master implements GRecord{
         
         for (lnCtr = 0; lnCtr <= paInsContc.size() -1; lnCtr++){
             paInsContc.get(lnCtr).setClientID(poClient.getClientID());
-            Validator_Client_Institution_Contact validator = new Validator_Client_Institution_Contact(paInsContc.get(lnCtr));
-            
-            paInsContc.get(lnCtr).setModifiedDate(poGRider.getServerDate());
-            
+            ValidatorInterface validator = ValidatorFactory.make(types,  ValidatorFactory.TYPE.Client_Institution_Contact, paInsContc.get(lnCtr));
             if (!validator.isEntryOkay()){
                 obj.put("result", "error");
                 obj.put("message", validator.getMessage());
                 return obj;
-            
+
             }
+            
+//            Validator_Client_Institution_Contact validator = new Validator_Client_Institution_Contact(paInsContc.get(lnCtr));
+//            
+//            paInsContc.get(lnCtr).setModifiedDate(poGRider.getServerDate());
+//            
+//            if (!validator.isEntryOkay()){
+//                obj.put("result", "error");
+//                obj.put("message", validator.getMessage());
+//                return obj;
+//            
+//            }
             obj = paInsContc.get(lnCtr).saveRecord();
 
         }    
@@ -684,15 +744,13 @@ public class Client_Master implements GRecord{
         
         for (lnCtr = 0; lnCtr <= paSocMed.size() -1; lnCtr++){
             paSocMed.get(lnCtr).setClientID(poClient.getClientID());
-            Validator_Client_Social_Media validator = new Validator_Client_Social_Media(paSocMed.get(lnCtr));
             
-            paSocMed.get(lnCtr).setModifiedDate(poGRider.getServerDate());
-            
+            ValidatorInterface validator = ValidatorFactory.make(types,  ValidatorFactory.TYPE.Client_Social_Media, paSocMed.get(lnCtr));
             if (!validator.isEntryOkay()){
                 obj.put("result", "error");
                 obj.put("message", validator.getMessage());
                 return obj;
-            
+
             }
             obj = paSocMed.get(lnCtr).saveRecord();
 
@@ -700,7 +758,6 @@ public class Client_Master implements GRecord{
         
         return obj;
     }
-    
     private Connection setConnection(){
         Connection foConn;
         
@@ -718,8 +775,8 @@ public class Client_Master implements GRecord{
     }
 
     @Override
-    public Object getModel() {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    public Model_Client_Master getModel() {
+        return poClient;
     }
     
     public JSONObject searchCitizenship(String fsValue, boolean fbByCode) {
@@ -867,10 +924,7 @@ public class Client_Master implements GRecord{
         return openRecord(lsValue);
     }
     
-    public JSONObject SearchClientAddress(String fsValue){
-        String lsHeader = "ID»Address";
-        String lsColName = "sAddrssID»CONCAT(b.sHouseNox, ' ', b.sAddressx, ', ', c.sTownName, ' ', d.sProvName)";
-        String lsColCrit = "a.sAddrssID»CONCAT(b.sHouseNox, ' ', b.sAddressx, ', ', c.sTownName, ' ', d.sProvName)";
+    public JSONObject OpenClientAddress(String fsValue){
         String lsSQL = "SELECT " +
                         " a.sAddrssID" +
                         ", a.sClientID" +
@@ -888,73 +942,176 @@ public class Client_Master implements GRecord{
                         ", c.sProvName xProvName" +
                 " FROM Client_Address a" + 
                  " LEFT JOIN TownCity b ON a.sTownIDxx = b.sTownIDxx" +
-                            " LEFT JOIN Province c ON a.cProvince = c.sProvName" +
+                            " LEFT JOIN Province c ON b.sProvIDxx = c.sProvIDxx" +
                             " LEFT JOIN Barangay d ON a.sBrgyIDxx = d.sBrgyIDxx";
-        lsSQL = MiscUtil.addCondition(lsSQL, "a.sClientID = " + SQLUtil.toSQL(fsValue));
-        
+        lsSQL = MiscUtil.addCondition(lsSQL, "a.sClientID = " + SQLUtil.toSQL(fsValue) + " GROUP BY sAddrssID");
+        System.out.println(lsSQL);
         ResultSet loRS = poGRider.executeQuery(lsSQL);
 
         try {
-            while (loRS.next()){
-                paAddress.add(new Model_Client_Address(poGRider));
-                paAddress.get(paAddress.size()-1).openRecord(loRS.getString("sAddrssID"));
+            int lnctr = 0;
+            if (MiscUtil.RecordCount(loRS) > 0) {
+                paAddress = new ArrayList<>();
+                while(loRS.next()){
+                        paAddress.add(new Model_Client_Address(poGRider));
+                        paAddress.get(paAddress.size() - 1).openRecord(loRS.getString("sAddrssID"));
+                        
+                        pnEditMode = EditMode.UPDATE;
+                        lnctr++;
+                        poJSON.put("result", "success");
+                        poJSON.put("message", "Record loaded successfully.");
+                    } 
                 
-
-                pnEditMode = EditMode.UPDATE;
-
+                System.out.println("lnctr = " + lnctr);
+                
+            }else{
                 poJSON.put("result", "success");
                 poJSON.put("message", "Record loaded successfully.");
-            } 
+            }
+            
+            MiscUtil.close(loRS);
         } catch (SQLException e) {
             poJSON.put("result", "error");
             poJSON.put("message", e.getMessage());
         }
-        return ShowDialogFX.Browse(poGRider, loRS, lsHeader, lsColName);
+        return poJSON;
     }
     
-    public JSONObject SearchClientMobile(String fsValue){
-        String lsHeader = "ID»Address";
-        String lsColName = "sMobileID»sMobileNo";
-        String lsColCrit = "sMobileID»sMobileNo";
+    public JSONObject OpenClientMobile(String fsValue){
         String lsSQL = "SELECT" +
                     "  sMobileID" +
                     ", sClientID" +
-                    ", sMobileNo" +
-                    ", cMobileTp" +
-                    ", cOwnerxxx" +
-                    ", cPrimaryx" +
-                    ", cIncdMktg" +
-                    ", nUnreachx" +
-                    ", dLastVeri" +
-                    ", dInactive" +
-                    ", nNoRetryx" +
-                    ", cInvalidx" +
-                    ", cConfirmd" +
-                    ", dConfirmd" +
-                    ", cSubscrbr" +
-                    ", dHoldMktg" +
-                    ", dMktgMsg1" +
-                    ", dMktgMsg2" +
-                    ", dMktgMsg3" +
-                    ", cNewMobil" +
-                    ", cRecdStat" +
-                    ", dModified" +
                         " FROM Client_Mobile" ;
-        lsSQL = MiscUtil.addCondition(lsSQL, "sClientID = " + SQLUtil.toSQL(fsValue) + " AND a.nPriority = 1");
+        lsSQL = MiscUtil.addCondition(lsSQL, "sClientID = " + SQLUtil.toSQL(fsValue));
         ResultSet loRS = poGRider.executeQuery(lsSQL);
-        JSONObject loJSON = new JSONObject();
-        try {
+        
+        System.out.println(lsSQL);
+       try {
             int lnctr = 0;
-            while (loRS.next()){
-                paMobile.add(new Model_Client_Mobile(poGRider));
+            if (MiscUtil.RecordCount(loRS) > 0) {
+                paMobile = new ArrayList<>();
+                while(loRS.next()){
+                        paMobile.add(new Model_Client_Mobile(poGRider));
+                        paMobile.get(paMobile.size() - 1).openRecord(loRS.getString("sMobileID"));
+                        
+                        pnEditMode = EditMode.UPDATE;
+                        lnctr++;
+                        poJSON.put("result", "success");
+                        poJSON.put("message", "Record loaded successfully.");
+                    } 
                 
-                paMobile.get(paMobile.size() - 1).openRecord(loRS.getString("sMobileID"));
-                lnctr++;
-                pnEditMode = EditMode.UPDATE;
-
+                System.out.println("lnctr = " + lnctr);
+            }else{
                 poJSON.put("result", "success");
                 poJSON.put("message", "Record loaded successfully.");
-            } 
+            }
+            MiscUtil.close(loRS);
+        } catch (SQLException e) {
+            poJSON.put("result", "error");
+            poJSON.put("message", e.getMessage());
+        }
+        return poJSON;
+    }
+    public JSONObject OpenClientMail(String fsValue){
+        String lsSQL = "SELECT" +
+                    "  sEmailIDx" +
+                    ", sClientID" +
+                        " FROM Client_eMail_Address" ;
+        lsSQL = MiscUtil.addCondition(lsSQL, "sClientID = " + SQLUtil.toSQL(fsValue));
+        ResultSet loRS = poGRider.executeQuery(lsSQL);
+        
+        System.out.println(lsSQL);
+       try {
+            int lnctr = 0;
+            if (MiscUtil.RecordCount(loRS) > 0) {
+                paMail = new ArrayList<>();
+                while(loRS.next()){
+                        paMail.add(new Model_Client_Mail(poGRider));
+                        paMail.get(paMail.size() - 1).openRecord(loRS.getString("sEmailIDx"));
+                        
+                        pnEditMode = EditMode.UPDATE;
+                        lnctr++;
+                        poJSON.put("result", "success");
+                        poJSON.put("message", "Record loaded successfully.");
+                    } 
+                
+                System.out.println("lnctr = " + lnctr);
+            }else{
+                poJSON.put("result", "success");
+                poJSON.put("message", "Record loaded successfully.");
+            }
+            MiscUtil.close(loRS);
+        } catch (SQLException e) {
+            poJSON.put("result", "error");
+            poJSON.put("message", e.getMessage());
+        }
+        return poJSON;
+    }
+    
+    public JSONObject OpenClientSocialAccount(String fsValue){
+        String lsSQL = "SELECT" +
+                    "  sSocialID" +
+                    ", sClientID" +
+                        " FROM Client_Social_Media" ;
+        lsSQL = MiscUtil.addCondition(lsSQL, "sClientID = " + SQLUtil.toSQL(fsValue));
+        ResultSet loRS = poGRider.executeQuery(lsSQL);
+        
+        System.out.println(lsSQL);
+       try {
+            int lnctr = 0;
+            if (MiscUtil.RecordCount(loRS) > 0) {
+                paSocMed = new ArrayList<>();
+                while(loRS.next()){
+                        paSocMed.add(new Model_Client_Social_Media(poGRider));
+                        paSocMed.get(paSocMed.size() - 1).openRecord(loRS.getString("sSocialID"));
+                        
+                        pnEditMode = EditMode.UPDATE;
+                        lnctr++;
+                        poJSON.put("result", "success");
+                        poJSON.put("message", "Record loaded successfully.");
+                    } 
+                
+                System.out.println("lnctr = " + lnctr);
+            }else{
+                poJSON.put("result", "success");
+                poJSON.put("message", "Record loaded successfully.");
+            }
+            MiscUtil.close(loRS);
+        } catch (SQLException e) {
+            poJSON.put("result", "error");
+            poJSON.put("message", e.getMessage());
+        }
+        return poJSON;
+    }
+    public JSONObject OpenClientInsContctPerson(String fsValue){
+        String lsSQL = "SELECT" +
+                    "  sContctID" +
+                    ", sClientID" +
+                        " FROM Client_Institution_Contact_Person" ;
+        lsSQL = MiscUtil.addCondition(lsSQL, "sClientID = " + SQLUtil.toSQL(fsValue));
+        ResultSet loRS = poGRider.executeQuery(lsSQL);
+        
+        System.out.println(lsSQL);
+       try {
+            int lnctr = 0;
+            if (MiscUtil.RecordCount(loRS) > 0) {
+                paInsContc = new ArrayList<>();
+                while(loRS.next()){
+                        paInsContc.add(new Model_Client_Institution_Contact(poGRider));
+                        paInsContc.get(paInsContc.size() - 1).openRecord(loRS.getString("sContctID"));
+                        
+                        pnEditMode = EditMode.UPDATE;
+                        lnctr++;
+                        poJSON.put("result", "success");
+                        poJSON.put("message", "Record loaded successfully.");
+                    } 
+                
+                System.out.println("lnctr = " + lnctr);
+            }else{
+                poJSON.put("result", "success");
+                poJSON.put("message", "Record loaded successfully.");
+            }
+            MiscUtil.close(loRS);
         } catch (SQLException e) {
             poJSON.put("result", "error");
             poJSON.put("message", e.getMessage());

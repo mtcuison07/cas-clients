@@ -42,7 +42,7 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.guanzon.validators</groupId>
+            <groupId>org.guanzon.cas.validators</groupId>
             <artifactId>cas-validators</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>

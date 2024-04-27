@@ -11,30 +11,6 @@
         <exec.mainClass>org.guanzon.clients.CasClients</exec.mainClass>
     </properties>
     <dependencies>
-        <!-- https://mvnrepository.com/artifact/mysql/mysql-connector-java -->
-        <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
-            <version>5.1.49</version>
-        </dependency>
-        <dependency>
-            <groupId>org.guanzon</groupId>
-            <artifactId>appdriver-base</artifactId>
-            <version>0.1-SNAPSHOT</version>
-            <type>jar</type>
-        </dependency>
-        
-        <dependency>
-            <groupId>org.guanzon</groupId>
-            <artifactId>appdriver-agent</artifactId>
-            <version>0.1-SNAPSHOT</version>
-            <type>jar</type>
-        </dependency>
-        <dependency>     
-            <groupId>com.google.code.gson</groupId>     
-            <artifactId>gson</artifactId>     
-            <version>2.8.6</version>     
-        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>cas-models</artifactId>
@@ -44,10 +20,6 @@
             <groupId>org.guanzon.validators</groupId>
             <artifactId>cas-validators</artifactId>
             <version>1.0-SNAPSHOT</version>
-         <dependency>     
-            <groupId>com.google.code.gson</groupId>     
-            <artifactId>gson</artifactId>     
-            <version>2.8.6</version>     
         </dependency>
         <dependency>
             <groupId>junit</groupId>

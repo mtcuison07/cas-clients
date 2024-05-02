@@ -12,11 +12,6 @@
     </properties>
     <dependencies>
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>cas-models</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
             <groupId>org.guanzon.cas.validators</groupId>
             <artifactId>cas-validators</artifactId>
             <version>1.0-SNAPSHOT</version>
@@ -27,6 +22,11 @@
             <version>4.13.1</version>
             <scope>test</scope>
             <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>cas-models</artifactId>
+            <version>${project.version}</version>
         </dependency>
     </dependencies>
    <build>

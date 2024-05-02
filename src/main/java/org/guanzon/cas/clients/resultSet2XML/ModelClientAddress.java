@@ -46,6 +46,14 @@ public class ModelClientAddress {
                         "  a.nLatitude, " +
                         "  a.nLongitud, " +
                         "  a.cPrimaryx, " +
+                        "  a.cOfficexx, " +
+                        "  a.cProvince, " +
+                        "  a.cBillingx, " +
+                        "  a.cShipping, " +
+                        "  a.cCurrentx, " +
+                        "  a.cLTMSAddx, " +
+                        "  a.sSourceCd, " +
+                        "  a.sReferNox, " +
                         "  a.cRecdStat, " +
                         "  a.dModified, " +
                         "  b.sTownName    xTownName, " +

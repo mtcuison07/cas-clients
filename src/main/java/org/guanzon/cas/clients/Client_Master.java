@@ -139,28 +139,28 @@ public class Client_Master implements GRecord{
         poClient = new Model_Client_Master(poGRider);
         poJSON = poClient.openRecord(fsValue);
         
-        poJSON = OpenClientAddress(fsValue);
+        poJSON = checkData(OpenClientAddress(fsValue));
         switch (types) {
             case PARAMETER:
-                poJSON = OpenClientMobile(fsValue);
-                poJSON = OpenClientMail(fsValue);
-                poJSON = OpenClientSocialAccount(fsValue);
-                poJSON = OpenClientInsContctPerson(fsValue);
+                poJSON = checkData(OpenClientMobile(fsValue));
+                poJSON = checkData(OpenClientMail(fsValue));
+                poJSON = checkData(OpenClientSocialAccount(fsValue));
+                poJSON = checkData(OpenClientInsContctPerson(fsValue));
                 
                 break;
             case COMPANY:
-                poJSON = OpenClientInsContctPerson(fsValue);
+                poJSON = checkData(OpenClientInsContctPerson(fsValue));
                 
                 break;
             case INDIVIDUAL:
-                poJSON = OpenClientMobile(fsValue);
-                poJSON = OpenClientMail(fsValue);
-                poJSON = OpenClientSocialAccount(fsValue);
+                poJSON = checkData(OpenClientMobile(fsValue));
+                poJSON = checkData(OpenClientMail(fsValue));
+                poJSON = checkData(OpenClientSocialAccount(fsValue));
                 
                 break;
             case STANDARD:
                 
-                poJSON = OpenClientMobile(fsValue);
+                poJSON = checkData(OpenClientMobile(fsValue));
                 break;
         }
 //        poClient = new Model_Client_Master(poGRider);
@@ -175,6 +175,13 @@ public class Client_Master implements GRecord{
 
     @Override
     public JSONObject updateRecord() {
+        
+        poJSON = new JSONObject();
+        if (pnEditMode != EditMode.READY && pnEditMode != EditMode.UPDATE){
+            poJSON.put("result", "error");
+            poJSON.put("message", "Invalid edit mode.");
+            return poJSON;
+        }
         pnEditMode = EditMode.UPDATE;
         poJSON.put("result", "success");
         poJSON.put("message", "Update mode success.");
@@ -301,7 +308,7 @@ public class Client_Master implements GRecord{
         return poJSON;
     }
     private JSONObject checkData(JSONObject joValue){
-        if(pnEditMode == EditMode.UPDATE){
+        if(pnEditMode == EditMode.READY || pnEditMode == EditMode.UPDATE){
             if(joValue.containsKey("continue")){
                 if(true == (boolean)joValue.get("continue")){
                     joValue.put("result", "success");
@@ -989,7 +996,8 @@ public class Client_Master implements GRecord{
         
         
         
-        lsSQL = MiscUtil.addCondition(lsSQL, "a.cClientTp = " + SQLUtil.toSQL(psClientType));
+        lsSQL = MiscUtil.addCondition(lsSQL, "a.cClientTp = " + SQLUtil.toSQL(psClientType)) + " GROUP BY a.sClientID";
+        
        
            
       
@@ -1009,12 +1017,12 @@ public class Client_Master implements GRecord{
             
         System.out.println("loJSON = " + loJSON.toJSONString());
             
-            if (loJSON != null) {
+            if (loJSON != null && !"error".equals((String) loJSON.get("result"))) {
                 System.out.println("sClientID = " + (String) loJSON.get("sClientID"));
                 lsValue = (String) loJSON.get("sClientID");
             }else {
                 loJSON.put("result", "error");
-                loJSON.put("message", "No record selected.");
+                loJSON.put("message", "No client information found for: " + fsValue + ", Please check client type and client name details.");
                 return loJSON;
             }
         return openRecord(lsValue);
@@ -1061,7 +1069,10 @@ public class Client_Master implements GRecord{
                 System.out.println("lnctr = " + lnctr);
                 
             }else{
+                paAddress = new ArrayList<>();
+                addAddress();
                 poJSON.put("result", "error");
+                poJSON.put("continue", true);
                 poJSON.put("message", "No record selected.");
             }
             
@@ -1098,7 +1109,10 @@ public class Client_Master implements GRecord{
                 
                 System.out.println("lnctr = " + lnctr);
             }else{
+                paMobile = new ArrayList<>();
+                addContact();
                 poJSON.put("result", "error");
+                poJSON.put("continue", true);
                 poJSON.put("message", "No record found .");
             }
             MiscUtil.close(loRS);
@@ -1133,7 +1147,10 @@ public class Client_Master implements GRecord{
                 
                 System.out.println("lnctr = " + lnctr);
             }else{
+                paMail = new ArrayList<>();
+                addMail();
                 poJSON.put("result", "error");
+                poJSON.put("continue", true);
                 poJSON.put("message", "No record selected.");
             }
             MiscUtil.close(loRS);
@@ -1169,7 +1186,10 @@ public class Client_Master implements GRecord{
                 
                 System.out.println("lnctr = " + lnctr);
             }else{
+                paSocMed = new ArrayList<>();
+                addSocialMedia();
                 poJSON.put("result", "error");
+                poJSON.put("continue", true);
                 poJSON.put("message", "No record selected.");
             }
             MiscUtil.close(loRS);
@@ -1202,9 +1222,11 @@ public class Client_Master implements GRecord{
                         poJSON.put("message", "Record loaded successfully.");
                     } 
                 
-                System.out.println("lnctr = " + lnctr);
             }else{
+                paInsContc = new ArrayList<>();
+                addInsContact();
                 poJSON.put("result", "error");
+                poJSON.put("continue", true);
                 poJSON.put("message", "No record selected.");
             }
             MiscUtil.close(loRS);

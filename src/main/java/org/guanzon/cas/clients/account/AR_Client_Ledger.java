@@ -16,7 +16,7 @@ import org.guanzon.appdriver.constant.EditMode;
 import org.guanzon.appdriver.constant.UserRight;
 import org.guanzon.appdriver.iface.GRecord;
 import org.guanzon.appdriver.iface.GTransaction;
-import org.guanzon.cas.model.clients.ap.Model_AP_Client_Ledger;
+import org.guanzon.cas.model.clients.ar.Model_AR_Client_Ledger;
 import org.guanzon.cas.models.Model_Account_Accreditation;
 import org.guanzon.cas.validators.ValidatorFactory;
 import org.guanzon.cas.validators.ValidatorInterface;
@@ -26,17 +26,17 @@ import org.json.simple.JSONObject;
  *
  * @author User
  */
-public class AP_Client_Ledger implements GRecord {
+public class AR_Client_Ledger implements GRecord {
 
     GRider poGRider;
     boolean pbWthParent;
     int pnEditMode;
     String psTranStatus;
     
-    ArrayList<Model_AP_Client_Ledger> poModel;
+    ArrayList<Model_AR_Client_Ledger> poModel;
     JSONObject poJSON;
 
-    public AP_Client_Ledger(GRider foGRider, boolean fbWthParent) {
+    public AR_Client_Ledger(GRider foGRider, boolean fbWthParent) {
         poGRider = foGRider;
         pbWthParent = fbWthParent;
         pnEditMode = EditMode.UNKNOWN;
@@ -155,7 +155,7 @@ public class AP_Client_Ledger implements GRecord {
                 return poJSON;
             }
             
-            Model_AP_Client_Ledger model = new Model_AP_Client_Ledger(poGRider);
+            Model_AR_Client_Ledger model = new Model_AR_Client_Ledger(poGRider);
             String lsSQL = "DELETE FROM " + model.getTable()+
                                 " WHERE sClientID = " + SQLUtil.toSQL(fsValue);
 
@@ -190,7 +190,7 @@ public class AP_Client_Ledger implements GRecord {
     @Override
     public JSONObject searchRecord(String fsValue, boolean fbByCode) {
         String lsCondition = "";
-        Model_AP_Client_Ledger model = new Model_AP_Client_Ledger(poGRider);
+        Model_AR_Client_Ledger model = new Model_AR_Client_Ledger(poGRider);
         String lsSQL = MiscUtil.addCondition(model.makeSQL(), "sClientID = " + SQLUtil.toSQL(fsValue));
 
         poJSON = new JSONObject();
@@ -213,11 +213,11 @@ public class AP_Client_Ledger implements GRecord {
     }
 
     @Override
-    public Model_AP_Client_Ledger getModel() {
+    public Model_AR_Client_Ledger getModel() {
         throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
-    public ArrayList<Model_AP_Client_Ledger> getMaster(){return poModel;}
-    public void setMaster(ArrayList<Model_AP_Client_Ledger> foObj){poModel = foObj;}
+    public ArrayList<Model_AR_Client_Ledger> getMaster(){return poModel;}
+    public void setMaster(ArrayList<Model_AR_Client_Ledger> foObj){poModel = foObj;}
     
     
     public void setMaster(int fnRow, int fnIndex, Object foValue){ poModel.get(fnRow).setValue(fnIndex, foValue);}
@@ -229,7 +229,7 @@ public class AP_Client_Ledger implements GRecord {
     public JSONObject addLedger(){
         poJSON = new JSONObject();
         if (poModel.isEmpty()){
-            poModel.add(new Model_AP_Client_Ledger(poGRider));
+            poModel.add(new Model_AR_Client_Ledger(poGRider));
             poModel.get(0).newRecord();
             poJSON.put("result", "success");
             poJSON.put("message", "Address add record.");
@@ -244,7 +244,7 @@ public class AP_Client_Ledger implements GRecord {
                 poJSON.put("message", validator.getMessage());
                 return poJSON;
             }
-            poModel.add(new Model_AP_Client_Ledger(poGRider));
+            poModel.add(new Model_AR_Client_Ledger(poGRider));
             poModel.get(poModel.size()-1).newRecord();
             
             poJSON.put("result", "success");
@@ -275,7 +275,7 @@ public class AP_Client_Ledger implements GRecord {
             if (MiscUtil.RecordCount(loRS) > 0) {
                 poModel = new ArrayList<>();
                 while(loRS.next()){
-                        poModel.add(new Model_AP_Client_Ledger(poGRider));
+                        poModel.add(new Model_AR_Client_Ledger(poGRider));
                         poModel.get(poModel.size() - 1).openRecord(loRS.getString("sClientID"));
                         
                         pnEditMode = EditMode.UPDATE;

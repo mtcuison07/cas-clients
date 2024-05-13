@@ -481,6 +481,7 @@ public class Account_Accreditation implements GTransaction {
                 setMaster("sContctID", (String) loJSON.get("sContctID"));
                 setMaster("sCPerson1", (String) loJSON.get("sCPerson1"));
                 setMaster("sCompnyNm", (String) loJSON.get("sCompnyNm"));
+                loJSON.put("result", "success");
             }else {
                 loJSON.put("result", "error");
                 loJSON.put("message", "No client information found for: " + fsValue + ", Please check client type and client name details.");

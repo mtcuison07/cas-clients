@@ -17,10 +17,9 @@ import org.guanzon.appdriver.constant.TransactionStatus;
 import org.guanzon.appdriver.constant.UserRight;
 import org.guanzon.appdriver.iface.GRecord;
 import org.guanzon.appdriver.iface.GTransaction;
-import org.guanzon.cas.clients.Client_Master;
 import org.guanzon.cas.model.clients.Model_Client_Address;
 import org.guanzon.cas.model.clients.Model_Client_Master;
-import org.guanzon.cas.model.clients.ap.Model_AP_Client_Master;
+import org.guanzon.cas.model.clients.ar.Model_AR_Client_Master;
 import org.guanzon.cas.models.Model_AP_Client_Ledger;
 import org.guanzon.cas.validators.ValidatorFactory;
 import org.guanzon.cas.validators.ValidatorInterface;
@@ -30,22 +29,23 @@ import org.json.simple.JSONObject;
  *
  * @author User
  */
-public class AP_Client_Master implements GRecord {
+public class AR_Client_Master implements GRecord {
 
     GRider poGRider;
     boolean pbWthParent;
     int pnEditMode;
     String psTranStatus;
     
-    Model_AP_Client_Master poModel;
+    Model_AR_Client_Master poModel;
 //    ArrayList<Model_AP_Client_Ledger> poLedger;
     JSONObject poJSON;
     AP_Client_Ledger poLedger1;
-    public AP_Client_Master(GRider foGRider, boolean fbWthParent) {
+
+    public AR_Client_Master(GRider foGRider, boolean fbWthParent) {
         poGRider = foGRider;
         pbWthParent = fbWthParent;
 
-        poModel = new Model_AP_Client_Master(foGRider);
+        poModel = new Model_AR_Client_Master(foGRider);
         poLedger1 = new AP_Client_Ledger(foGRider, fbWthParent);
         pnEditMode = EditMode.UNKNOWN;
     }
@@ -249,7 +249,7 @@ public class AP_Client_Master implements GRecord {
         try{
             
 //            pnEditMode = EditMode.ADDNEW;
-            poModel = new Model_AP_Client_Master(poGRider);
+            poModel = new Model_AR_Client_Master(poGRider);
 //            org.json.simple.JSONObject obj;
 //
             Connection loConn = null;
@@ -294,7 +294,7 @@ public class AP_Client_Master implements GRecord {
         pnEditMode = EditMode.READY;
         poJSON = new JSONObject();
         
-        poModel = new Model_AP_Client_Master(poGRider);
+        poModel = new Model_AR_Client_Master(poGRider);
         poJSON = poModel.openRecord("sTransNox = " + SQLUtil.toSQL(fsValue));
         
         poJSON = poLedger1.openRecord(fsValue);
@@ -464,7 +464,7 @@ public class AP_Client_Master implements GRecord {
     }
 
     @Override
-    public Model_AP_Client_Master getModel() {
+    public Model_AR_Client_Master getModel() {
         return poModel;
     }
 

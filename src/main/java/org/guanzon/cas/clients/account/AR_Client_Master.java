@@ -17,10 +17,10 @@ import org.guanzon.appdriver.constant.TransactionStatus;
 import org.guanzon.appdriver.constant.UserRight;
 import org.guanzon.appdriver.iface.GRecord;
 import org.guanzon.appdriver.iface.GTransaction;
+import org.guanzon.cas.clients.Client_Master;
 import org.guanzon.cas.model.clients.Model_Client_Address;
 import org.guanzon.cas.model.clients.Model_Client_Master;
 import org.guanzon.cas.model.clients.ar.Model_AR_Client_Master;
-import org.guanzon.cas.models.Model_AP_Client_Ledger;
 import org.guanzon.cas.validators.ValidatorFactory;
 import org.guanzon.cas.validators.ValidatorInterface;
 import org.json.simple.JSONObject;
@@ -37,16 +37,19 @@ public class AR_Client_Master implements GRecord {
     String psTranStatus;
     
     Model_AR_Client_Master poModel;
-//    ArrayList<Model_AP_Client_Ledger> poLedger;
+//    ArrayList<Model_AR_Client_Ledger> poLedger;
     JSONObject poJSON;
-    AP_Client_Ledger poLedger1;
-
+    AR_Client_Ledger poLedger1;
+    Client_Master poClient;
+    
+    
     public AR_Client_Master(GRider foGRider, boolean fbWthParent) {
         poGRider = foGRider;
         pbWthParent = fbWthParent;
 
         poModel = new Model_AR_Client_Master(foGRider);
-        poLedger1 = new AP_Client_Ledger(foGRider, fbWthParent);
+        poLedger1 = new AR_Client_Ledger(foGRider, fbWthParent);
+        poClient = new Client_Master(foGRider, fbWthParent, poGRider.getBranchCode());
         pnEditMode = EditMode.UNKNOWN;
     }
 
@@ -62,6 +65,7 @@ public class AR_Client_Master implements GRecord {
                 fnCol == poModel.getColumn("sModified") ||
                 fnCol == poModel.getColumn("dModified"))){
                obj =  poModel.setValue(fnCol, foData);
+               
 //                obj.put(fnCol, pnEditMode);
             }
         }
@@ -88,15 +92,14 @@ public class AR_Client_Master implements GRecord {
         return foConn;
     }
     
-    public AP_Client_Ledger getLedger(){return poLedger1;}
-    public void setLedger(AP_Client_Ledger foObj){this.poLedger1 = foObj;}
+    public AR_Client_Ledger getLedger(){return poLedger1;}
+    public void setLedger(AR_Client_Ledger foObj){this.poLedger1 = foObj;}
     
     
     public void setLedger(int fnRow, int fnIndex, Object foValue){ poLedger1.setMaster(fnRow, fnIndex, foValue);}
     public void setLedger(int fnRow, String fsIndex, Object foValue){ poLedger1.setMaster(fnRow, fsIndex, foValue);}
     public Object getLedger(int fnRow, int fnIndex){return poLedger1.getMaster(fnRow, fnIndex);}
     public Object getLedger(int fnRow, String fsIndex){return poLedger1.getMaster(fnRow, fsIndex);}
-    
     
     public JSONObject SearchClient(String fsValue, boolean fbByCode){
         String lsHeader = "ID»Name»Contact Person";
@@ -175,7 +178,7 @@ public class AR_Client_Master implements GRecord {
 //                        ", dPostedxx" +
 //                        ", nABalance" +
 //                        ", dModified" +
-//                        " FROM AP_Client_Ledger";
+//                        " FROM AR_Client_Ledger";
 //        lsSQL = MiscUtil.addCondition(lsSQL, "sClientID = " + SQLUtil.toSQL(fsValue));
 //        System.out.println(lsSQL);
 //        ResultSet loRS = poGRider.executeQuery(lsSQL);
@@ -185,7 +188,7 @@ public class AR_Client_Master implements GRecord {
 //            if (MiscUtil.RecordCount(loRS) > 0) {
 //                poLedger = new ArrayList<>();
 //                while(loRS.next()){
-//                        poLedger.add(new Model_AP_Client_Ledger(poGRider));
+//                        poLedger.add(new Model_AR_Client_Ledger(poGRider));
 //                        poLedger.get(poLedger.size() - 1).openRecord(loRS.getString("sClientID"));
 //                        
 //                        pnEditMode = EditMode.UPDATE;

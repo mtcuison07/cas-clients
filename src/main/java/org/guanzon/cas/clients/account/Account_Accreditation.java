@@ -13,10 +13,8 @@ import org.guanzon.appdriver.base.SQLUtil;
 import org.guanzon.appdriver.constant.EditMode;
 import org.guanzon.appdriver.constant.TransactionStatus;
 import org.guanzon.appdriver.iface.GTransaction;
-import org.guanzon.cas.model.clients.Model_Client_Address;
-import org.guanzon.cas.model.clients.Model_Client_Master;
+import org.guanzon.cas.model.clients.ar.Model_AR_Client_Ledger;
 import org.guanzon.cas.models.Model_Account_Accreditation;
-import org.guanzon.cas.models.Model_Supplier_Accreditation;
 import org.guanzon.cas.validators.ValidatorFactory;
 import org.guanzon.cas.validators.ValidatorInterface;
 import org.json.simple.JSONObject;
@@ -31,31 +29,24 @@ public class Account_Accreditation implements GTransaction {
     boolean pbWthParent;
     int pnEditMode;
     String psTranStatus;
+    String psTransNox;
 
-    ArrayList<Model_Account_Accreditation> paModel;
-    Model_Account_Accreditation poModel;
+    ArrayList<Model_Account_Accreditation> poModel;
     JSONObject poJSON;
-    int pnRow;
-    public void setRow(int fnRow){
-        pnRow = fnRow;
+    public String getTransNox(){
+        return psTransNox;
     }
     public Account_Accreditation(GRider foGRider, boolean fbWthParent) {
         poGRider = foGRider;
         pbWthParent = fbWthParent;
-        
-//        paModel = new Model_Account_Accreditation(foGRider);
         pnEditMode = EditMode.UNKNOWN;
     }
-
+    
     @Override
     public JSONObject newTransaction() {
-         poJSON = new JSONObject();
+        poJSON = new JSONObject();
         try{
-            
-
-            //init detail
-            //init detail
-            paModel = new ArrayList<>();
+            poModel = new ArrayList<>();
             
             addDetail();
                 
@@ -75,22 +66,28 @@ public class Account_Accreditation implements GTransaction {
 
     @Override
     public JSONObject openTransaction(String fsValue) {
-        return poModel.openRecord("sTransNox = " + SQLUtil.toSQL(fsValue));
+    
+        pnEditMode = EditMode.READY;
+        poJSON = new JSONObject();
+        
+        poJSON = OpenAccount(fsValue);
+        return poJSON;
     }
 
     @Override
     public JSONObject updateTransaction() {
-        JSONObject loJSON = new JSONObject();
-
-        if (getEditMode() == EditMode.UPDATE) {
-            loJSON.put("result", "success");
-            loJSON.put("message", "Edit mode has changed to update.");
+    
+         poJSON = new JSONObject();
+        
+        if (pnEditMode != EditMode.READY && pnEditMode != EditMode.UPDATE){
+            poJSON.put("result", "success");
+            poJSON.put("message", "Edit mode has changed to update.");
         } else {
-            loJSON.put("result", "error");
-            loJSON.put("message", "No record loaded to update.");
+            poJSON.put("result", "error");
+            poJSON.put("message", "No record loaded to update.");
         }
 
-        return loJSON;
+        return poJSON;
     }
 
     @Override
@@ -101,7 +98,7 @@ public class Account_Accreditation implements GTransaction {
 
         poJSON = saveRecord("");
 
-        if ("success".equals((String)checkData(poJSON).get("result"))) {
+        if ("success".equals((String)poJSON.get("result"))) {
             if (!pbWthParent) {
                 poGRider.commitTrans();
             }
@@ -115,8 +112,8 @@ public class Account_Accreditation implements GTransaction {
     }
 
     @Override
-    public JSONObject deleteTransaction(String fsValue) {
-        throw new UnsupportedOperationException("Not supported yet.");
+    public JSONObject deleteTransaction(String string) {
+        throw new UnsupportedOperationException("Not supported yet."); 
     }
 
     @Override
@@ -126,13 +123,13 @@ public class Account_Accreditation implements GTransaction {
         if (getEditMode() == EditMode.READY || getEditMode() == EditMode.UPDATE) {
             
             poJSON = saveRecord("Close");
-//            poJSON = paModel.setTranStatus(TransactionStatus.STATE_CLOSED);
+//            poJSON = poModel.setTranStatus(TransactionStatus.STATE_CLOSED);
 //
 //            if ("error".equals((String) poJSON.get("result"))) {
 //                return poJSON;
 //            }
 //
-//            poJSON = paModel.saveRecord();
+//            poJSON = poModel.saveRecord();
         } else {
             poJSON = new JSONObject();
             poJSON.put("result", "error");
@@ -148,13 +145,13 @@ public class Account_Accreditation implements GTransaction {
         if (getEditMode() == EditMode.READY
                 || getEditMode() == EditMode.UPDATE) {
             poJSON = saveRecord("Post");
-//            poJSON = paModel.get(0).setTranStatus(TransactionStatus.STATE_POSTED);
+//            poJSON = poModel.get(0).setTranStatus(TransactionStatus.STATE_POSTED);
 //
 //            if ("error".equals((String) poJSON.get("result"))) {
 //                return poJSON;
 //            }
 //
-//            poJSON = paModel.saveRecord();
+//            poJSON = poModel.saveRecord();
         } else {
             poJSON = new JSONObject();
             poJSON.put("result", "error");
@@ -171,13 +168,13 @@ public class Account_Accreditation implements GTransaction {
                 || getEditMode() == EditMode.UPDATE) {
             
             poJSON = saveRecord("Void");
-//            poJSON = paModel.setTranStatus(TransactionStatus.STATE_VOID);
+//            poJSON = poModel.setTranStatus(TransactionStatus.STATE_VOID);
 //
 //            if ("error".equals((String) poJSON.get("result"))) {
 //                return poJSON;
 //            }
 //
-//            poJSON = paModel.saveRecord();
+//            poJSON = poModel.saveRecord();
         } else {
             poJSON = new JSONObject();
             poJSON.put("result", "error");
@@ -194,13 +191,13 @@ public class Account_Accreditation implements GTransaction {
                 || getEditMode() == EditMode.UPDATE) {
             
             poJSON = saveRecord("Cancel");
-//            poJSON = paModel.setTranStatus(TransactionStatus.STATE_CANCELLED);
+//            poJSON = poModel.setTranStatus(TransactionStatus.STATE_CANCELLED);
 //
 //            if ("error".equals((String) poJSON.get("result"))) {
 //                return poJSON;
 //            }
 //
-//            poJSON = paModel.saveRecord();
+//            poJSON = poModel.saveRecord();
         } else {
             poJSON = new JSONObject();
             poJSON.put("result", "error");
@@ -209,9 +206,10 @@ public class Account_Accreditation implements GTransaction {
         return poJSON;
     }
 
+
     @Override
     public JSONObject searchWithCondition(String string) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        throw new UnsupportedOperationException("Not supported yet."); 
     }
 
     @Override
@@ -234,8 +232,8 @@ public class Account_Accreditation implements GTransaction {
         } else {
             lsFilter = fsColumn + " = " + SQLUtil.toSQL(fsValue);
         }
-
-        String lsSQL = MiscUtil.addCondition(poModel.makeSQL(), lsCondition + " AND " + lsFilter + " GROUP BY sTransNox");
+        Model_Account_Accreditation model = new Model_Account_Accreditation(poGRider);
+        String lsSQL = MiscUtil.addCondition(model.makeSQL(), lsCondition + " AND " + lsFilter + " GROUP BY sTransNox");
         
         poJSON = new JSONObject();
 
@@ -256,47 +254,31 @@ public class Account_Accreditation implements GTransaction {
             return poJSON;
         }
     }
-    
-    
-    @Override
-    public JSONObject searchMaster(String fsColumn, String fsValue, boolean fbByCode) {
-        return searchMaster(paModel.get(pnRow).getColumn(fsColumn), fsValue, fbByCode);
 
+    @Override
+    public JSONObject searchMaster(String string, String string1, boolean bln) {
+        throw new UnsupportedOperationException("Not supported yet."); 
     }
 
     @Override
-    public JSONObject searchMaster(int fnCol, String fsValue, boolean fbByCode) {
-        poJSON = new JSONObject();
-        switch(fnCol){
-            case 14: //sClientNm
-                poJSON = SearchClient(pnRow, fsValue, fbByCode);
-                break;
-        }
-        return poJSON;
+    public JSONObject searchMaster(int i, String string, boolean bln) {
+        throw new UnsupportedOperationException("Not supported yet."); 
     }
 
     @Override
-    public Model_Account_Accreditation getMasterModel() {
-        return paModel.get(pnRow);
+    public Object getMasterModel() {
+        throw new UnsupportedOperationException("Not supported yet."); 
     }
 
     @Override
-    public JSONObject setMaster(int fnCol, Object foData) {
-        return paModel.get(pnRow).setValue(fnCol, foData);
+    public JSONObject setMaster(int i, Object o) {
+        throw new UnsupportedOperationException("Not supported yet."); 
     }
 
     @Override
-    public JSONObject setMaster(String fsCol, Object foData) {
-        return paModel.get(pnRow).setValue(fsCol, foData);
+    public JSONObject setMaster(String string, Object o) {
+        throw new UnsupportedOperationException("Not supported yet."); 
     }
-//    
-//    public JSONObject setMaster(int fnRow, int fnCol, Object foData) {
-//        return paModel.get(fnRow).setValue(fnCol, foData);
-//    }
-//
-//    public JSONObject setMaster(int fnRow, String fsCol, Object foData) {
-//        return paModel.get(fnRow).setValue(fsCol, foData);
-//    }
 
     @Override
     public int getEditMode() {
@@ -304,134 +286,29 @@ public class Account_Accreditation implements GTransaction {
     }
 
     @Override
-    public void setTransactionStatus(String fsValue) {
-        psTranStatus = fsValue;
-    }
-    public JSONObject OpenAccount(String fsValue){
-        
-        String lsSQL = MiscUtil.addCondition(poModel.makeSQL(), "sTransNox = " + SQLUtil.toSQL(fsValue));
-        System.out.println(lsSQL);
-        ResultSet loRS = poGRider.executeQuery(lsSQL);
-
-        try {
-            int lnctr = 0;
-            if (MiscUtil.RecordCount(loRS) > 0) {
-                paModel = new ArrayList<>();
-                while(loRS.next()){
-                        paModel.add(new Model_Account_Accreditation(poGRider));
-                        
-                        paModel.get(paModel.size() - 1).openRecord("sTransNox = " + SQLUtil.toSQL(loRS.getString("sTransNox")));
-                        
-                        pnEditMode = EditMode.UPDATE;
-                        lnctr++;
-                        poJSON.put("result", "success");
-                        poJSON.put("message", "Record loaded successfully.");
-                    } 
-                
-                System.out.println("lnctr = " + lnctr);
-                
-            }else{
-                paModel = new ArrayList<>();
-                addDetail();
-                poJSON.put("result", "error");
-                poJSON.put("continue", true);
-                poJSON.put("message", "No record selected.");
-            }
-            
-            MiscUtil.close(loRS);
-        } catch (SQLException e) {
-            poJSON.put("result", "error");
-            poJSON.put("message", e.getMessage());
-        }
-        return poJSON;
+    public void setTransactionStatus(String string) {
+        throw new UnsupportedOperationException("Not supported yet."); 
     }
     
-    private JSONObject saveRecord(String type){
-        
-        JSONObject obj = new JSONObject();
-        if (paModel.size()<= 0){
-            obj.put("result", "error");
-            obj.put("message", "No client address detected. Please encode client address.");
-            return obj;
-        }
-        
-        int lnCtr;
-        String lsSQL;
-        Model_Account_Accreditation loModel = new Model_Account_Accreditation(poGRider);
-        String lsTransNox = MiscUtil.getNextCode(loModel.getTable(), "sTransNox", true, poGRider.getConnection(), poGRider.getBranchCode());        
-        for (lnCtr = 0; lnCtr <= paModel.size() -1; lnCtr++){
-//            Validator_Client_Address validator = new Validator_Client_Address(paAddress.get(lnCtr));
-            if("Cancel".equals(type)){
-                obj = paModel.get(lnCtr).setTranStatus(TransactionStatus.STATE_CANCELLED);
-//
-                if ("error".equals((String) obj.get("result"))) {
-                    return obj;
-                }
-                
-            }else if("Void".equals(type)){
-                obj = paModel.get(lnCtr).setTranStatus(TransactionStatus.STATE_VOID);
-//
-                if ("error".equals((String) obj.get("result"))) {
-                    return obj;
-                }
-            }else if("Post".equals(type)){
-                obj = paModel.get(lnCtr).setTranStatus(TransactionStatus.STATE_POSTED);
-//
-                if ("error".equals((String) obj.get("result"))) {
-                    return obj;
-                }
-                
-            }else if("Close".equals(type)){
-                obj = paModel.get(lnCtr).setTranStatus(TransactionStatus.STATE_CLOSED);
-//
-                if ("error".equals((String) obj.get("result"))) {
-                    return obj;
-                }
-                
-            }
-            ValidatorInterface validator = ValidatorFactory.make(ValidatorFactory.TYPE.Account_Accreditation, paModel.get(lnCtr));
-            paModel.get(lnCtr).setModifiedDate(poGRider.getServerDate());
-            paModel.get(lnCtr).setTransactionNo(lsTransNox);
-            
-            if (!validator.isEntryOkay()){
-                obj.put("result", "error");
-                obj.put("message", validator.getMessage());
-                return obj;
-            
-            }
-            obj = paModel.get(lnCtr).saveRecord();
-
-        }    
-        
-        return obj;
+    public ArrayList<Model_Account_Accreditation> getAccount(){return poModel;}
+    public void setAccount(ArrayList<Model_Account_Accreditation> foObj){poModel = foObj;}
+    
+    
+    public JSONObject setAccount(int fnRow, int fnIndex, Object foValue){ return poModel.get(fnRow).setValue(fnIndex, foValue);}
+    public JSONObject setAccount(int fnRow, String fsIndex, Object foValue){ return  poModel.get(fnRow).setValue(fsIndex, foValue);}
+    public Object getAccount(int fnRow, int fnIndex){return poModel.get(fnRow).getValue(fnIndex);}
+    public Object getAccount(int fnRow, String fsIndex){return poModel.get(fnRow).getValue(fsIndex);}
+    
+    public JSONObject searchMaster(int fnRow, String fsColumn, String fsValue, boolean fbByCode) {    
+        return searchMaster(poModel.get(fnRow).getColumn(fsColumn), fsValue, fbByCode);
     }
-    public JSONObject addDetail(){
-        poJSON = new JSONObject();
-        if (paModel.isEmpty()){
-            poModel = new Model_Account_Accreditation(poGRider);
-            paModel.add(poModel);
-            paModel.get(0).newRecord();
-            pnRow = 0;
-            poJSON.put("result", "success");
-            poJSON.put("message", "Address add record.");
-            
 
-        } else {
-            
-            ValidatorInterface validator = ValidatorFactory.make(ValidatorFactory.TYPE.Account_Accreditation, paModel.get(paModel.size()-1));
-//            Validator_Client_Address  validator = new Validator_Client_Address(paAddress.get(paAddress.size()-1));
-            if(!validator.isEntryOkay()){
-                poJSON.put("result", "error");
-                poJSON.put("message", validator.getMessage());
-                return poJSON;
-            }
-            poModel = new Model_Account_Accreditation(poGRider);
-            paModel.add(poModel);
-            paModel.get(paModel.size()-1).newRecord();
-            pnRow = paModel.size()-1;
-            
-            poJSON.put("result", "success");
-            poJSON.put("message", "Address add record.");
+    public JSONObject searchMaster(int fnRow, int fnColumn, String fsValue, boolean fbByCode) {
+        poJSON = new JSONObject();
+        switch(fnRow){
+            case 14: //sClientNm
+                poJSON = SearchClient(fnRow, fsValue, fbByCode);
+                break;
         }
         return poJSON;
     }
@@ -440,7 +317,7 @@ public class Account_Accreditation implements GTransaction {
         String lsColName = "sClientID»sCompnyNm»sCPerson1";
         String lsColCrit = "a.sClientID»b.sCompnyNm»c.sCPerson1";
         String lsTable;
-        if(paModel.get(fnRow).getAcctType().equalsIgnoreCase("0")){
+        if(poModel.get(fnRow).getAcctType().equalsIgnoreCase("0")){
             lsTable = "AP_Client_Master";
         }else{
             lsTable = "AR_Client_Master";
@@ -475,12 +352,14 @@ public class Account_Accreditation implements GTransaction {
         System.out.println("loJSON = " + loJSON.toJSONString());
             
             if (loJSON != null && !"error".equals((String) loJSON.get("result"))) {
-                System.out.println("sClientID = " + (String) loJSON.get("sClientID"));
+                System.out.println("json sClientID = " + (String) loJSON.get("sClientID"));
                 lsValue = (String) loJSON.get("sClientID");
-                setMaster("sClientID", (String) loJSON.get("sClientID"));
-                setMaster("sContctID", (String) loJSON.get("sContctID"));
-                setMaster("sCPerson1", (String) loJSON.get("sCPerson1"));
-                setMaster("sCompnyNm", (String) loJSON.get("sCompnyNm"));
+                setAccount(fnRow, "sClientID", (String) loJSON.get("sClientID"));
+                setAccount(fnRow, "sContctID", (String) loJSON.get("sContctID"));
+                setAccount(fnRow, "sCPerson1", (String) loJSON.get("sCPerson1"));
+                setAccount(fnRow, "sCompnyNm", (String) loJSON.get("sCompnyNm"));
+                
+//                System.out.println("get sClientID = " + getAccount(fnRow, 4));
                 loJSON.put("result", "success");
             }else {
                 loJSON.put("result", "error");
@@ -489,15 +368,129 @@ public class Account_Accreditation implements GTransaction {
             }
         return loJSON;
     }
-    private JSONObject checkData(JSONObject joValue){
-        if(pnEditMode == EditMode.READY || pnEditMode == EditMode.UPDATE){
-            if(joValue.containsKey("continue")){
-                if(true == (boolean)joValue.get("continue")){
-                    joValue.put("result", "success");
-                    joValue.put("message", "Record saved successfully.");
-                }
+    public JSONObject addDetail(){
+        poJSON = new JSONObject();
+        
+        psTransNox = (MiscUtil.getNextCode(new Model_Account_Accreditation(poGRider).getTable(), "sTransNox", true, poGRider.getConnection(), poGRider.getBranchCode()));
+        if (poModel.isEmpty()){
+            poModel.add(new Model_Account_Accreditation(poGRider));
+            poModel.get(0).newRecord();
+            poJSON.put("result", "success");
+            poJSON.put("message", "Address add record.");
+            
+
+        } else {
+            
+            ValidatorInterface validator = ValidatorFactory.make(ValidatorFactory.TYPE.Account_Accreditation, poModel.get(poModel.size()-1));
+            if(!validator.isEntryOkay()){
+                poJSON.put("result", "error");
+//                poJSON.put("message", poModel.get(poModel.size()-1).getClientID());
+                poJSON.put("message", validator.getMessage());
+                return poJSON;
             }
+            poModel.add(new Model_Account_Accreditation(poGRider));
+            poModel.get(poModel.size()-1).newRecord();
+            
+            poJSON.put("result", "success");
+            poJSON.put("message", "Address add record.");
         }
-        return joValue;
+        return poJSON;
+    }
+    public JSONObject OpenAccount(String fsValue){
+        Model_Account_Accreditation model = new Model_Account_Accreditation(poGRider);
+        String lsSQL = MiscUtil.addCondition(model.makeSQL(), "sTransNox = " + SQLUtil.toSQL(fsValue));
+        System.out.println(lsSQL);
+        ResultSet loRS = poGRider.executeQuery(lsSQL);
+
+        try {
+            int lnctr = 0;
+            if (MiscUtil.RecordCount(loRS) > 0) {
+                poModel = new ArrayList<>();
+                while(loRS.next()){
+                        poModel.add(new Model_Account_Accreditation(poGRider));
+                        
+                        poModel.get(poModel.size() - 1).openRecord("sTransNox = " + SQLUtil.toSQL(loRS.getString("sTransNox")));
+                        
+                        pnEditMode = EditMode.UPDATE;
+                        lnctr++;
+                        poJSON.put("result", "success");
+                        poJSON.put("message", "Record loaded successfully.");
+                    } 
+                
+                System.out.println("lnctr = " + lnctr);
+                
+            }else{
+                poModel = new ArrayList<>();
+                addDetail();
+                poJSON.put("result", "error");
+                poJSON.put("continue", true);
+                poJSON.put("message", "No record selected.");
+            }
+            
+            MiscUtil.close(loRS);
+        } catch (SQLException e) {
+            poJSON.put("result", "error");
+            poJSON.put("message", e.getMessage());
+        }
+        return poJSON;
+    }
+    
+    private JSONObject saveRecord(String type){
+        
+        JSONObject obj = new JSONObject();
+        if (poModel.size()<= 0){
+            obj.put("result", "error");
+            obj.put("message", "No client address detected. Please encode client address.");
+            return obj;
+        }
+        
+        int lnCtr;
+        String lsSQL;
+        Model_Account_Accreditation loModel = new Model_Account_Accreditation(poGRider);
+        String lsTransNox = MiscUtil.getNextCode(loModel.getTable(), "sTransNox", true, poGRider.getConnection(), poGRider.getBranchCode());        
+        for (lnCtr = 0; lnCtr <= poModel.size() -1; lnCtr++){
+            if("Cancel".equals(type)){
+                obj = poModel.get(lnCtr).setTranStatus(TransactionStatus.STATE_CANCELLED);
+//
+                if ("error".equals((String) obj.get("result"))) {
+                    return obj;
+                }
+                
+            }else if("Void".equals(type)){
+                obj = poModel.get(lnCtr).setTranStatus(TransactionStatus.STATE_VOID);
+//
+                if ("error".equals((String) obj.get("result"))) {
+                    return obj;
+                }
+            }else if("Post".equals(type)){
+                obj = poModel.get(lnCtr).setTranStatus(TransactionStatus.STATE_POSTED);
+//
+                if ("error".equals((String) obj.get("result"))) {
+                    return obj;
+                }
+                
+            }else if("Close".equals(type)){
+                obj = poModel.get(lnCtr).setTranStatus(TransactionStatus.STATE_CLOSED);
+//
+                if ("error".equals((String) obj.get("result"))) {
+                    return obj;
+                }
+                
+            }
+            ValidatorInterface validator = ValidatorFactory.make(ValidatorFactory.TYPE.Account_Accreditation, poModel.get(lnCtr));
+            poModel.get(lnCtr).setModifiedDate(poGRider.getServerDate());
+            poModel.get(lnCtr).setTransactionNo(lsTransNox);
+            
+            if (!validator.isEntryOkay()){
+                obj.put("result", "error");
+                obj.put("message", validator.getMessage());
+                return obj;
+            
+            }
+            obj = poModel.get(lnCtr).saveRecord();
+
+        }    
+        
+        return obj;
     }
 }

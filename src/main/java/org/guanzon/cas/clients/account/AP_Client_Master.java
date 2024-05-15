@@ -41,12 +41,16 @@ public class AP_Client_Master implements GRecord {
 //    ArrayList<Model_AP_Client_Ledger> poLedger;
     JSONObject poJSON;
     AP_Client_Ledger poLedger1;
+    Client_Master poClient;
+    
+    
     public AP_Client_Master(GRider foGRider, boolean fbWthParent) {
         poGRider = foGRider;
         pbWthParent = fbWthParent;
 
         poModel = new Model_AP_Client_Master(foGRider);
         poLedger1 = new AP_Client_Ledger(foGRider, fbWthParent);
+        poClient = new Client_Master(foGRider, fbWthParent, poGRider.getBranchCode());
         pnEditMode = EditMode.UNKNOWN;
     }
 
@@ -62,6 +66,7 @@ public class AP_Client_Master implements GRecord {
                 fnCol == poModel.getColumn("sModified") ||
                 fnCol == poModel.getColumn("dModified"))){
                obj =  poModel.setValue(fnCol, foData);
+               
 //                obj.put(fnCol, pnEditMode);
             }
         }
@@ -96,7 +101,6 @@ public class AP_Client_Master implements GRecord {
     public void setLedger(int fnRow, String fsIndex, Object foValue){ poLedger1.setMaster(fnRow, fsIndex, foValue);}
     public Object getLedger(int fnRow, int fnIndex){return poLedger1.getMaster(fnRow, fnIndex);}
     public Object getLedger(int fnRow, String fsIndex){return poLedger1.getMaster(fnRow, fsIndex);}
-    
     
     public JSONObject SearchClient(String fsValue, boolean fbByCode){
         String lsHeader = "ID»Name»Contact Person";

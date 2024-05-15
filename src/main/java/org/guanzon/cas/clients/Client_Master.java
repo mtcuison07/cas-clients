@@ -18,6 +18,7 @@ import org.guanzon.appdriver.base.MiscUtil;
 import org.guanzon.appdriver.base.SQLUtil;
 import org.guanzon.appdriver.constant.EditMode;
 import org.guanzon.appdriver.iface.GRecord;
+import org.guanzon.cas.clients.account.GlobalVariables;
 import org.guanzon.cas.validators.ValidatorFactory;
 import org.guanzon.cas.validators.ValidatorInterface;
 import org.guanzon.cas.validators.client.parameter.Validator_Client_Address;
@@ -108,6 +109,8 @@ public class Client_Master implements GRecord{
                 poJSON.put("message", "initialized new record failed.");
                 return poJSON;
             }else{
+                
+                GlobalVariables.sClientID = poClient.getClientID();
                 addAddress();
                 addContact();
                 addMail();
@@ -142,10 +145,14 @@ public class Client_Master implements GRecord{
         poJSON = checkData(OpenClientAddress(fsValue));
         switch (types) {
             case PARAMETER:
-                poJSON = checkData(OpenClientMobile(fsValue));
-                poJSON = checkData(OpenClientMail(fsValue));
-                poJSON = checkData(OpenClientSocialAccount(fsValue));
-                poJSON = checkData(OpenClientInsContctPerson(fsValue));
+                if(getMaster("cClientTp").equals("0")){
+                    poJSON = checkData(OpenClientInsContctPerson(fsValue));
+                }else{
+                    poJSON = checkData(OpenClientMobile(fsValue));
+                    poJSON = checkData(OpenClientMail(fsValue));
+                    poJSON = checkData(OpenClientSocialAccount(fsValue));
+                    poJSON = checkData(OpenClientInsContctPerson(fsValue));
+                }
                 
                 break;
             case COMPANY:
@@ -200,12 +207,13 @@ public class Client_Master implements GRecord{
         }
         
         if (!pbWtParent) poGRider.beginTrans();
-        
         poJSON =  poClient.saveRecord();
         if("error".equalsIgnoreCase((String)checkData(poJSON).get("result"))){
             if (!pbWtParent) poGRider.rollbackTrans();
             return checkData(poJSON);
         }
+        
+        GlobalVariables.sClientID = poClient.getClientID();
 //        if("error".equalsIgnoreCase((String)poJSON.get("result"))){
 //            if (!pbWtParent) poGRider.rollbackTrans();
 //            return poJSON;
@@ -233,7 +241,7 @@ public class Client_Master implements GRecord{
         switch(types){
             
             case INDIVIDUAL:
-            case PARAMETER:
+                
                 poJSON =  saveMobile();
                 if("error".equalsIgnoreCase((String)checkData(poJSON).get("result"))){
                     if (!pbWtParent) poGRider.rollbackTrans();
@@ -243,7 +251,7 @@ public class Client_Master implements GRecord{
 //                    if (!pbWtParent) poGRider.rollbackTrans();
 //                    return poJSON;
 //                }
-                
+
                 poJSON =  saveEmail();
                 if("error".equalsIgnoreCase((String)checkData(poJSON).get("result"))){
                     if (!pbWtParent) poGRider.rollbackTrans();
@@ -253,26 +261,53 @@ public class Client_Master implements GRecord{
 //                    if (!pbWtParent) poGRider.rollbackTrans();
 //                    return poJSON;
 //                }
-                
+
                 poJSON =  saveSocialAccount();
                 if("error".equalsIgnoreCase((String)checkData(poJSON).get("result"))){
                     if (!pbWtParent) poGRider.rollbackTrans();
                     return checkData(poJSON);
                 }
-//                if("error".equalsIgnoreCase((String)poJSON.get("result"))){
-//                    if (!pbWtParent) poGRider.rollbackTrans();
-//                    return poJSON;
-//                }
-                if(types == ValidatorFactory.ClientTypes.PARAMETER){
-                    poJSON =  saveInstitution();
+                break;
+            case PARAMETER:
+                
+                if(getMaster("cClientTp").equals("1")){
+                    poJSON =  saveMobile();
                     if("error".equalsIgnoreCase((String)checkData(poJSON).get("result"))){
                         if (!pbWtParent) poGRider.rollbackTrans();
                         return checkData(poJSON);
                     }
-//                    if("error".equalsIgnoreCase((String)poJSON.get("result"))){
-//                        if (!pbWtParent) poGRider.rollbackTrans();
-//                        return poJSON;
-//                    }
+    //                if("error".equalsIgnoreCase((String)poJSON.get("result"))){
+    //                    if (!pbWtParent) poGRider.rollbackTrans();
+    //                    return poJSON;
+    //                }
+
+                    poJSON =  saveEmail();
+                    if("error".equalsIgnoreCase((String)checkData(poJSON).get("result"))){
+                        if (!pbWtParent) poGRider.rollbackTrans();
+                        return checkData(poJSON);
+                    }
+    //                if("error".equalsIgnoreCase((String)poJSON.get("result"))){
+    //                    if (!pbWtParent) poGRider.rollbackTrans();
+    //                    return poJSON;
+    //                }
+
+                    poJSON =  saveSocialAccount();
+                    if("error".equalsIgnoreCase((String)checkData(poJSON).get("result"))){
+                        if (!pbWtParent) poGRider.rollbackTrans();
+                        return checkData(poJSON);
+                    }
+                }
+                
+                
+                if(types == ValidatorFactory.ClientTypes.PARAMETER){
+                    if(getMaster("cClientTp").equals("0")){
+                        poJSON =  saveInstitution();
+                        if("error".equalsIgnoreCase((String)checkData(poJSON).get("result"))){
+                            if (!pbWtParent) poGRider.rollbackTrans();
+                            return checkData(poJSON);
+                        }
+                    }
+                    
                 }
                 break;
             case COMPANY:
@@ -678,18 +713,28 @@ public class Client_Master implements GRecord{
         
         for (lnCtr = 0; lnCtr <= paMobile.size() -1; lnCtr++){
             paMobile.get(lnCtr).setClientID(poClient.getClientID());
-//            Validator_Client_Mobile validator = new Validator_Client_Mobile(paMobile.get(lnCtr));
             
             paMobile.get(lnCtr).setMobileNetwork(CommonUtils.classifyNetwork(paMobile.get(lnCtr).getContactNo()));
             paMobile.get(lnCtr).setModifiedDate(poGRider.getServerDate());
             
-            ValidatorInterface validator = ValidatorFactory.make(types,  ValidatorFactory.TYPE.Client_Mobile, paMobile.get(lnCtr));
-            if (!validator.isEntryOkay()){
-                obj.put("result", "error");
-                obj.put("message", validator.getMessage());
-                return obj;
+            if(!ValidatorFactory.ClientTypes.STANDARD.equals(types)){
+                ValidatorInterface validator = ValidatorFactory.make(types,  ValidatorFactory.TYPE.Client_Mobile, paMobile.get(lnCtr));
+                if (!validator.isEntryOkay()){
+                    obj.put("result", "error");
+                    obj.put("message", validator.getMessage());
+                    return obj;
+                }
+                obj = paMobile.get(lnCtr).saveRecord();
+            }else{
+                if(paMobile.get(lnCtr).getContactNo().isEmpty()){
+                    obj.put("result", "error");
+                    obj.put("continue", true);
+                    obj.put("message", "Record saved success.");
+                    return obj;
+                }
+                obj = paMobile.get(lnCtr).saveRecord();
+                
             }
-            obj = paMobile.get(lnCtr).saveRecord();
             
 
         }    

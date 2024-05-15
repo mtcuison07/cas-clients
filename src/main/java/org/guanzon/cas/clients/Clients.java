@@ -9,8 +9,10 @@ package org.guanzon.cas.clients;
  * @author User
  */
 public class Clients {
+    
+    
     private ClientTypes type;
-
+    
     public ClientTypes getType() {
         return type;
     }

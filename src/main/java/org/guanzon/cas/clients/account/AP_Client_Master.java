@@ -96,7 +96,6 @@ public class AP_Client_Master implements GRecord {
     public AP_Client_Ledger getLedger(){return poLedger1;}
     public void setLedger(AP_Client_Ledger foObj){this.poLedger1 = foObj;}
     
-    
     public void setLedger(int fnRow, int fnIndex, Object foValue){ poLedger1.setMaster(fnRow, fnIndex, foValue);}
     public void setLedger(int fnRow, String fsIndex, Object foValue){ poLedger1.setMaster(fnRow, fsIndex, foValue);}
     public Object getLedger(int fnRow, int fnIndex){return poLedger1.getMaster(fnRow, fnIndex);}
@@ -123,7 +122,7 @@ public class AP_Client_Master implements GRecord {
                         " LEFT JOIN TownCity e ON d.sTownIDxx = e.sTownIDxx" +
                         " LEFT JOIN Province f ON e.sProvIDxx = f.sProvIDxx";
         if (fbByCode)
-            lsSQL = MiscUtil.addCondition(lsSQL, "a.cClientTp = '0'  AND a.sClientID = " + SQLUtil.toSQL(fsValue)) + " GROUP BY a.sClientID";
+            lsSQL = MiscUtil.addCondition(lsSQL, "a.cClientTp = '0'  AND a.sClientIDLIKE " + SQLUtil.toSQL("%" + fsValue + "%")) + " GROUP BY a.sClientID";
         else
             lsSQL = MiscUtil.addCondition(lsSQL, "a.cClientTp = '0'  AND a.sCompnyNm LIKE " + SQLUtil.toSQL("%" + fsValue + "%")) + " GROUP BY a.sClientID";
         
@@ -150,14 +149,59 @@ public class AP_Client_Master implements GRecord {
 //                getMasterModel().setClientID((String) loJSON.get("sClientID"));
 //                poModel.setClientID((String) loJSON.get("sClientID"));
                 setMaster(1, (String) loJSON.get("sClientID"));
-                setMaster(2, (String) loJSON.get("sContctID"));
+                setMaster(3, (String) loJSON.get("sContctID"));
                 setMaster(20, (String) loJSON.get("sCPerson1"));
                 setMaster(18, (String) loJSON.get("sCompnyNm"));
-                setMaster(3, (String) loJSON.get("sAddrssID"));
+                setMaster(2, (String) loJSON.get("sAddrssID"));
                 setMaster(19, (String) loJSON.get("xAddressx"));
 //                OpenClientLedger((String) loJSON.get("sClientID"));
-                poLedger1.openRecord((String) loJSON.get("sClientID"));
+                checkData(poLedger1.openRecord((String) loJSON.get("sClientID")));
                 System.out.println("poLedger1 = " + poLedger1.openRecord((String) loJSON.get("sClientID")));
+                loJSON.put("result", "success");
+            }else {
+                loJSON.put("result", "error");
+                loJSON.put("message", "No client information found for: " + fsValue + ", Please check client type and client name details.");
+                return loJSON;
+            }
+        return loJSON;
+    }
+    
+    public JSONObject SearchTerm(String fsValue, boolean fbByCode){
+        String lsHeader = "Code»Description";
+        String lsColName = "sTermCode»sDescript";
+        String lsColCrit = "sTermCode»sDescript";
+        String lsSQL = "SELECT " +
+                        "  sTermCode" +
+                        ", sDescript" +
+                        " FROM Term" +
+                        " WHERE cRecdStat = '1'";
+        if (fbByCode)
+            lsSQL = MiscUtil.addCondition(lsSQL, "sTermCode = " + SQLUtil.toSQL(fsValue));
+        else
+            lsSQL = MiscUtil.addCondition(lsSQL, "sDescript LIKE " + SQLUtil.toSQL("%" + fsValue + "%"));
+        
+       
+        
+        JSONObject loJSON;
+        String lsValue;
+        System.out.println("lsSQL = " + lsSQL);
+        loJSON = ShowDialogFX.Search(poGRider, 
+                                        lsSQL, 
+                                        fsValue, 
+                                        lsHeader, 
+                                        lsColName, 
+                                        lsColCrit, 
+                                        fbByCode ? 0 :1);
+            
+        System.out.println("loJSON = " + loJSON.toJSONString());
+            
+            if (loJSON != null && !"error".equals((String) loJSON.get("result"))) {
+                System.out.println("sTermCode = " + (String) loJSON.get("sTermCode"));
+                System.out.println("sDescript = " + (String) loJSON.get("sDescript"));
+//                getMasterModel().setClientID((String) loJSON.get("sClientID"));
+//                poModel.setClientID((String) loJSON.get("sClientID"));
+                setMaster(8, (String) loJSON.get("sTermCode"));
+                setMaster(23, (String) loJSON.get("sDescript"));
                 loJSON.put("result", "success");
             }else {
                 loJSON.put("result", "error");
@@ -299,9 +343,9 @@ public class AP_Client_Master implements GRecord {
         poJSON = new JSONObject();
         
         poModel = new Model_AP_Client_Master(poGRider);
-        poJSON = poModel.openRecord("sTransNox = " + SQLUtil.toSQL(fsValue));
+        poJSON = poModel.openRecord(fsValue);
         
-        poJSON = poLedger1.openRecord(fsValue);
+        poJSON = checkData(poLedger1.openRecord(fsValue));
 //        poJSON = checkData(OpenClientLedger(fsValue));
         return poJSON;
     }
@@ -309,17 +353,17 @@ public class AP_Client_Master implements GRecord {
     @Override
     public JSONObject updateRecord() {
         
-        JSONObject loJSON = new JSONObject();
-
-        if (poModel.getEditMode() == EditMode.UPDATE) {
-            loJSON.put("result", "success");
-            loJSON.put("message", "Edit mode has changed to update.");
-        } else {
-            loJSON.put("result", "error");
-            loJSON.put("message", "No record loaded to update.");
+        
+        poJSON = new JSONObject();
+        if (pnEditMode != EditMode.READY && pnEditMode != EditMode.UPDATE){
+            poJSON.put("result", "error");
+            poJSON.put("message", "Invalid edit mode.");
+            return poJSON;
         }
-
-        return loJSON;
+        pnEditMode = EditMode.UPDATE;
+        poJSON.put("result", "success");
+        poJSON.put("message", "Update mode success.");
+        return poJSON;
     }
 
     @Override
@@ -430,36 +474,77 @@ public class AP_Client_Master implements GRecord {
         String lsCondition = "";
         String lsFilter = "";
 
+        String lsHeader = "ID»Name»Contact Person";
+        String lsColName = "sClientID»xClientNm»xCPerson1";
+        String lsColCrit = "a.sClientID»b.sCompnyNm»d.sCPerson1";
         if (psTranStatus.length() > 1) {
             for (int lnCtr = 0; lnCtr <= psTranStatus.length() - 1; lnCtr++) {
                 lsCondition += ", " + SQLUtil.toSQL(Character.toString(psTranStatus.charAt(lnCtr)));
             }
 
-            lsCondition =  "cRecdStat IN (" + lsCondition.substring(2) + ")";
+            lsCondition =  "a.cRecdStat IN (" + lsCondition.substring(2) + ")";
         } else {
-            lsCondition = "cRecdStat = " + SQLUtil.toSQL(psTranStatus);
+            lsCondition = "a.cRecdStat = " + SQLUtil.toSQL(psTranStatus);
         }
 
         if (!fbByCode) {
-            lsFilter = "sCompnyNm LIKE " + SQLUtil.toSQL(fsValue);
+            lsFilter = "sCompnyNm LIKE " + SQLUtil.toSQL("%" + fsValue + "%");
         } else {
-            lsFilter = "sClientID = " + SQLUtil.toSQL(fsValue);
+            lsFilter = "sClientID LIKE " + SQLUtil.toSQL("%" + fsValue + "%");
         }
-
-        String lsSQL = MiscUtil.addCondition(poModel.makeSQL(), lsCondition + " AND " + lsFilter);
-
+        String lsSQL  = "SELECT" +
+                        "  a.sClientID" +
+                        ", a.sAddrssID" +
+                        ", a.sContctID" +
+                        ", a.sCategrCd" +
+                        ", a.dCltSince" +
+                        ", a.dBegDatex" +
+                        ", a.nBegBalxx" +
+                        ", a.sTermIDxx" +
+                        ", a.nDiscount" +
+                        ", a.nCredLimt" +
+                        ", a.nABalance" +
+                        ", a.nOBalance" +
+                        ", a.nLedgerNo" +
+                        ", a.cVatablex" +
+                        ", a.cRecdStat" +
+                        ", a.sModified" +
+                        ", a.dModified" +
+                        ", b.sCompnyNm xClientNm" +
+                        ", TRIM(CONCAT(c.sHouseNox, ' ', c.sAddressx, ', ', g.sBrgyName, ' ', h.sTownName, ', ', i.sProvName)) xAddressx" +
+                        ", d.sCPerson1 xCPerson1" +
+                        ", d.sCPPosit1 xCPPosit1" +
+                        ", e.sDescript xCategrNm" +
+                        ", f.sDescript xTermName" +
+                        ", b.sTaxIDNox xTaxIDNox" +
+                        ", d.sMobileNo xMobileNo" +
+                    " FROM AP_Client_Master a" +
+                        " LEFT JOIN Client_Master b ON a.sClientID = b.sClientID" +
+                        " LEFT JOIN Client_Address c" + 
+                            " LEFT JOIN Barangay  g ON c.sBrgyIDxx = g.sBrgyIDxx" +
+                            " LEFT JOIN TownCity h ON c.sTownIDxx = h.sTownIDxx" +
+                            " LEFT JOIN Province i ON h.sProvIDxx = i.sProvIDxx" +
+                        " ON a.sAddrssID = c.sAddrssID" +
+                        " LEFT JOIN Client_Institution_Contact_Person d ON a.sContctID = d.sContctID" +
+                        " LEFT JOIN Category e ON a.sCategrCd = e.sCategrCd" +
+                        " LEFT JOIN Term f ON a.sTermIDxx = f.sTermCode";
+        
+        lsSQL = MiscUtil.addCondition(lsSQL, lsCondition + " AND " + lsFilter);
+        System.out.println("lsSQL = " + lsSQL);
         poJSON = new JSONObject();
 
         poJSON = ShowDialogFX.Search(poGRider,
                 lsSQL,
                 fsValue,
-                "ClientID No»Name»Address",
-                "sClientID»sCompnyNm»xAddressx",
-                "sClientID»sCompnyNm»xAddressx",
+                lsHeader,
+                lsColName,
+                lsColCrit,
                 fbByCode ? 0 : 1);
+        
 
-        if (poJSON != null) {
-            return openRecord(fsValue);
+        System.out.println("poJSON = " + poJSON);
+        if (poJSON != null && !"error".equals((String) poJSON.get("result"))) {
+            return openRecord((String)poJSON.get("sClientID"));
         } else {
             poJSON.put("result", "error");
             poJSON.put("message", "No record loaded to update.");
@@ -470,6 +555,57 @@ public class AP_Client_Master implements GRecord {
     @Override
     public Model_AP_Client_Master getModel() {
         return poModel;
+    }
+
+    public JSONObject SearchCategory(String fsValue, boolean fbByCode){
+        String lsHeader = "ID»Category";
+        String lsColName = "sCategrCd»sDescript»";
+        String lsColCrit = "sCategrCd»sDescript";
+        String lsTable;
+        lsTable = "Category";
+        String lsSQL = " SELECT " +
+                            " sCategrCd, " +
+                            " sDescript, " +
+                            " sInvTypCd, " +
+                            " cRecdStat " +
+                      " FROM " + lsTable;
+        
+       
+        if (fbByCode)
+            lsSQL = MiscUtil.addCondition(lsSQL, "sCategrCd = " + SQLUtil.toSQL(fsValue)) + " GROUP BY sCategrCd";
+        else
+            lsSQL = MiscUtil.addCondition(lsSQL, "sDescript LIKE " + SQLUtil.toSQL("%" + fsValue + "%")) + " GROUP BY sCategrCd";
+        
+       
+      
+        JSONObject loJSON;
+        String lsValue;
+        System.out.println("lsSQL = " + lsSQL);
+        loJSON = ShowDialogFX.Search(poGRider, 
+                                        lsSQL, 
+                                        fsValue, 
+                                        lsHeader, 
+                                        lsColName, 
+                                        lsColCrit, 
+                                        fbByCode ? 0 :1);
+            
+        System.out.println("loJSON = " + loJSON.toJSONString());
+            
+            if (loJSON != null && !"error".equals((String) loJSON.get("result"))) {
+                System.out.println("json sCategrCd = " + (String) loJSON.get("sCategrCd"));
+                lsValue = (String) loJSON.get("sCategrCd");
+                setMaster("sCategrCd", (String) loJSON.get("sCategrCd"));
+                setMaster("xCategrNm", (String) loJSON.get("sDescript"));
+//                setAccount(fnRow, "sDescript", (String) loJSON.get("sDescript"));
+                
+//                System.out.println("get sClientID = " + getAccount(fnRow, 4));
+                loJSON.put("result", "success");
+            }else {
+                loJSON.put("result", "error");
+                loJSON.put("message", "No Category information found for: " + fsValue + ", Please check Catergory Code and Description details.");
+                return loJSON;
+            }
+        return loJSON;
     }
 
 }

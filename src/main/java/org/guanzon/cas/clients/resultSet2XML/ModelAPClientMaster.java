@@ -60,6 +60,8 @@ public class ModelAPClientMaster {
                         ", d.sCPPosit1 xCPPosit1" +
                         ", e.sDescript xCategrNm" +
                         ", f.sDescript xTermName" +
+                        ", b.sTaxIDNox xTaxIDNox" +
+                        ", d.sMobileNo xMobileNo" +
                     " FROM AP_Client_Master a" +
                         " LEFT JOIN Client_Master b ON a.sClientID = b.sClientID" +
                         " LEFT JOIN Client_Address c" + 

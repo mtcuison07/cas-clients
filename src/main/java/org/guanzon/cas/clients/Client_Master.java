@@ -207,6 +207,9 @@ public class Client_Master implements GRecord{
         }
         
         if (!pbWtParent) poGRider.beginTrans();
+        if(types.equals(ValidatorFactory.ClientTypes.STANDARD)){
+            poClient.setActive(false);
+        }
         poJSON =  poClient.saveRecord();
         if("error".equalsIgnoreCase((String)checkData(poJSON).get("result"))){
             if (!pbWtParent) poGRider.rollbackTrans();
@@ -257,10 +260,6 @@ public class Client_Master implements GRecord{
                     if (!pbWtParent) poGRider.rollbackTrans();
                     return checkData(poJSON);
                 }
-//                if("error".equalsIgnoreCase((String)poJSON.get("result"))){
-//                    if (!pbWtParent) poGRider.rollbackTrans();
-//                    return poJSON;
-//                }
 
                 poJSON =  saveSocialAccount();
                 if("error".equalsIgnoreCase((String)checkData(poJSON).get("result"))){
@@ -269,46 +268,32 @@ public class Client_Master implements GRecord{
                 }
                 break;
             case PARAMETER:
-                
-                if(getMaster("cClientTp").equals("1")){
+                System.out.println("cClientTp = " + poClient.getValue("cClientTp"));
+                if(Integer.parseInt(poClient.getValue("cClientTp").toString()) == 1){
                     poJSON =  saveMobile();
                     if("error".equalsIgnoreCase((String)checkData(poJSON).get("result"))){
                         if (!pbWtParent) poGRider.rollbackTrans();
                         return checkData(poJSON);
                     }
-    //                if("error".equalsIgnoreCase((String)poJSON.get("result"))){
-    //                    if (!pbWtParent) poGRider.rollbackTrans();
-    //                    return poJSON;
-    //                }
-
                     poJSON =  saveEmail();
                     if("error".equalsIgnoreCase((String)checkData(poJSON).get("result"))){
                         if (!pbWtParent) poGRider.rollbackTrans();
                         return checkData(poJSON);
                     }
-    //                if("error".equalsIgnoreCase((String)poJSON.get("result"))){
-    //                    if (!pbWtParent) poGRider.rollbackTrans();
-    //                    return poJSON;
-    //                }
-
                     poJSON =  saveSocialAccount();
                     if("error".equalsIgnoreCase((String)checkData(poJSON).get("result"))){
                         if (!pbWtParent) poGRider.rollbackTrans();
                         return checkData(poJSON);
                     }
                 }
-                
-                
-                if(types == ValidatorFactory.ClientTypes.PARAMETER){
-                    if(getMaster("cClientTp").equals("0")){
-                        poJSON =  saveInstitution();
-                        if("error".equalsIgnoreCase((String)checkData(poJSON).get("result"))){
-                            if (!pbWtParent) poGRider.rollbackTrans();
-                            return checkData(poJSON);
-                        }
+                if(Integer.parseInt(poClient.getValue("cClientTp").toString()) == 0){
+                    poJSON =  saveInstitution();
+                    if("error".equalsIgnoreCase((String)checkData(poJSON).get("result"))){
+                        if (!pbWtParent) poGRider.rollbackTrans();
+                        return checkData(poJSON);
                     }
-                    
                 }
+                
                 break;
             case COMPANY:
                 poJSON =  saveInstitution();
@@ -718,6 +703,11 @@ public class Client_Master implements GRecord{
             paMobile.get(lnCtr).setModifiedDate(poGRider.getServerDate());
             
             if(!ValidatorFactory.ClientTypes.STANDARD.equals(types)){
+                if(lnCtr>0){
+                    if(paMobile.get(lnCtr).getContactNo().isEmpty()){
+                        paMobile.remove(lnCtr);
+                    }
+                }
                 ValidatorInterface validator = ValidatorFactory.make(types,  ValidatorFactory.TYPE.Client_Mobile, paMobile.get(lnCtr));
                 if (!validator.isEntryOkay()){
                     obj.put("result", "error");
@@ -727,7 +717,7 @@ public class Client_Master implements GRecord{
                 obj = paMobile.get(lnCtr).saveRecord();
             }else{
                 if(paMobile.get(lnCtr).getContactNo().isEmpty()){
-                    obj.put("result", "error");
+                    obj.put("result", "success");
                     obj.put("continue", true);
                     obj.put("message", "Record saved success.");
                     return obj;
@@ -758,7 +748,11 @@ public class Client_Master implements GRecord{
         for (lnCtr = 0; lnCtr <= paAddress.size() -1; lnCtr++){
             paAddress.get(lnCtr).setClientID(poClient.getClientID());
 //            Validator_Client_Address validator = new Validator_Client_Address(paAddress.get(lnCtr));
-            
+            if(lnCtr>0){
+                if(paAddress.get(lnCtr).getBarangayID().isEmpty() || paAddress.get(lnCtr).getTownID().isEmpty()){
+                    paAddress.remove(lnCtr);
+                }
+            }
             ValidatorInterface validator = ValidatorFactory.make(types,  ValidatorFactory.TYPE.Client_Address, paAddress.get(lnCtr));
             paAddress.get(lnCtr).setModifiedDate(poGRider.getServerDate());
             
@@ -795,7 +789,11 @@ public class Client_Master implements GRecord{
             ValidatorInterface validator = ValidatorFactory.make(types,  ValidatorFactory.TYPE.Client_Mail, paMail.get(lnCtr));
             
             paMail.get(lnCtr).setModifiedDate(poGRider.getServerDate());
-            
+            if(lnCtr>0){
+                if(paMail.get(lnCtr).getEmail().isEmpty()){
+                    paMail.remove(lnCtr);
+                }
+            }
             if (!validator.isEntryOkay()){
                 obj.put("result", "error");
                 obj.put("message", validator.getMessage());
@@ -823,6 +821,11 @@ public class Client_Master implements GRecord{
         
         for (lnCtr = 0; lnCtr <= paInsContc.size() -1; lnCtr++){
             paInsContc.get(lnCtr).setClientID(poClient.getClientID());
+            if(lnCtr>0){
+                if(paInsContc.get(lnCtr).getContactPerson().isEmpty()){
+                    paInsContc.remove(lnCtr);
+                }
+            }
             ValidatorInterface validator = ValidatorFactory.make(types,  ValidatorFactory.TYPE.Client_Institution_Contact, paInsContc.get(lnCtr));
             if (!validator.isEntryOkay()){
                 obj.put("result", "error");
@@ -851,7 +854,11 @@ public class Client_Master implements GRecord{
         
         for (lnCtr = 0; lnCtr <= paSocMed.size() -1; lnCtr++){
             paSocMed.get(lnCtr).setClientID(poClient.getClientID());
-            
+            if(lnCtr>0){
+                if(paSocMed.get(lnCtr).getSocialAccount().isEmpty()){
+                    paSocMed.remove(lnCtr);
+                }
+            }
             ValidatorInterface validator = ValidatorFactory.make(types,  ValidatorFactory.TYPE.Client_Social_Media, paSocMed.get(lnCtr));
             if (!validator.isEntryOkay()){
                 obj.put("result", "error");

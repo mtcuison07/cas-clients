@@ -13,15 +13,9 @@ import org.guanzon.appdriver.base.SQLUtil;
 import org.guanzon.appdriver.constant.EditMode;
 import org.guanzon.appdriver.constant.TransactionStatus;
 import org.guanzon.appdriver.iface.GTransaction;
-import org.guanzon.cas.model.clients.Model_Client_Master;
 import org.guanzon.cas.model.clients.ar.Model_AR_Client_Ledger;
-import org.guanzon.cas.model.clients.ar.Model_AR_Client_Master;
 import org.guanzon.cas.models.Model_Account_Accreditation;
 import org.guanzon.cas.validators.ValidatorFactory;
-import static org.guanzon.cas.validators.ValidatorFactory.ClientTypes.COMPANY;
-import static org.guanzon.cas.validators.ValidatorFactory.ClientTypes.INDIVIDUAL;
-import static org.guanzon.cas.validators.ValidatorFactory.ClientTypes.PARAMETER;
-import static org.guanzon.cas.validators.ValidatorFactory.ClientTypes.STANDARD;
 import org.guanzon.cas.validators.ValidatorInterface;
 import org.json.simple.JSONObject;
 
@@ -29,27 +23,25 @@ import org.json.simple.JSONObject;
  *
  * @author Maynard
  */
-public class Account_Accreditation implements GTransaction {
+public class Account_Accreditation1 implements GTransaction {
 
     GRider poGRider;
     boolean pbWthParent;
     int pnEditMode;
     String psTranStatus;
     String psTransNox;
-    String psAccountType = "0";
+
     ArrayList<Model_Account_Accreditation> poModel;
     JSONObject poJSON;
     public String getTransNox(){
         return psTransNox;
     }
-    public Account_Accreditation(GRider foGRider, boolean fbWthParent) {
+    public Account_Accreditation1(GRider foGRider, boolean fbWthParent) {
         poGRider = foGRider;
         pbWthParent = fbWthParent;
         pnEditMode = EditMode.UNKNOWN;
     }
-    public void setAccountType(String type){
-        this.psAccountType = type;
-    }
+    
     @Override
     public JSONObject newTransaction() {
         poJSON = new JSONObject();
@@ -84,16 +76,17 @@ public class Account_Accreditation implements GTransaction {
 
     @Override
     public JSONObject updateTransaction() {
+    
+         poJSON = new JSONObject();
         
-        poJSON = new JSONObject();
         if (pnEditMode != EditMode.READY && pnEditMode != EditMode.UPDATE){
+            poJSON.put("result", "success");
+            poJSON.put("message", "Edit mode has changed to update.");
+        } else {
             poJSON.put("result", "error");
-            poJSON.put("message", "Invalid edit mode.");
-            return poJSON;
+            poJSON.put("message", "No record loaded to update.");
         }
-        pnEditMode = EditMode.UPDATE;
-        poJSON.put("result", "success");
-        poJSON.put("message", "Update mode success.");
+
         return poJSON;
     }
 
@@ -261,7 +254,7 @@ public class Account_Accreditation implements GTransaction {
             return poJSON;
         }
     }
-    
+
     @Override
     public JSONObject searchMaster(String string, String string1, boolean bln) {
         throw new UnsupportedOperationException("Not supported yet."); 
@@ -290,10 +283,6 @@ public class Account_Accreditation implements GTransaction {
     @Override
     public int getEditMode() {
         return pnEditMode;
-    }
-    
-    public JSONObject searchRecord(String fsValue, boolean fbByCode) {
-        return SearchAccredetation(fsValue, fbByCode);
     }
 
     @Override
@@ -367,8 +356,8 @@ public class Account_Accreditation implements GTransaction {
                 lsValue = (String) loJSON.get("sClientID");
                 setAccount(fnRow, "sClientID", (String) loJSON.get("sClientID"));
                 setAccount(fnRow, "sContctID", (String) loJSON.get("sContctID"));
-                setAccount(fnRow, "xCPerson1", (String) loJSON.get("sCPerson1"));
-                setAccount(fnRow, "xCompnyNm", (String) loJSON.get("sCompnyNm"));
+                setAccount(fnRow, "sCPerson1", (String) loJSON.get("sCPerson1"));
+                setAccount(fnRow, "sCompnyNm", (String) loJSON.get("sCompnyNm"));
                 
 //                System.out.println("get sClientID = " + getAccount(fnRow, 4));
                 loJSON.put("result", "success");
@@ -409,7 +398,7 @@ public class Account_Accreditation implements GTransaction {
     }
     public JSONObject OpenAccount(String fsValue){
         Model_Account_Accreditation model = new Model_Account_Accreditation(poGRider);
-        String lsSQL = MiscUtil.addCondition(model.getSQL(), "sTransNox = " + SQLUtil.toSQL(fsValue));
+        String lsSQL = MiscUtil.addCondition(model.makeSQL(), "sTransNox = " + SQLUtil.toSQL(fsValue));
         System.out.println(lsSQL);
         ResultSet loRS = poGRider.executeQuery(lsSQL);
 
@@ -420,7 +409,7 @@ public class Account_Accreditation implements GTransaction {
                 while(loRS.next()){
                         poModel.add(new Model_Account_Accreditation(poGRider));
                         
-                        poModel.get(poModel.size() - 1).openRecord(loRS.getString("sTransNox"));
+                        poModel.get(poModel.size() - 1).openRecord("sTransNox = " + SQLUtil.toSQL(loRS.getString("sTransNox")));
                         
                         pnEditMode = EditMode.UPDATE;
                         lnctr++;
@@ -458,7 +447,7 @@ public class Account_Accreditation implements GTransaction {
         int lnCtr;
         String lsSQL;
         Model_Account_Accreditation loModel = new Model_Account_Accreditation(poGRider);
-//        String lsTransNox = MiscUtil.getNextCode(loModel.getTable(), "sTransNox", true, poGRider.getConnection(), poGRider.getBranchCode());        
+        String lsTransNox = MiscUtil.getNextCode(loModel.getTable(), "sTransNox", true, poGRider.getConnection(), poGRider.getBranchCode());        
         for (lnCtr = 0; lnCtr <= poModel.size() -1; lnCtr++){
             if("Cancel".equals(type)){
                 obj = poModel.get(lnCtr).setTranStatus(TransactionStatus.STATE_CANCELLED);
@@ -490,7 +479,7 @@ public class Account_Accreditation implements GTransaction {
             }
             ValidatorInterface validator = ValidatorFactory.make(ValidatorFactory.TYPE.Account_Accreditation, poModel.get(lnCtr));
             poModel.get(lnCtr).setModifiedDate(poGRider.getServerDate());
-//            poModel.get(lnCtr).setTransactionNo(lsTransNox);
+            poModel.get(lnCtr).setTransactionNo(lsTransNox);
             
             if (!validator.isEntryOkay()){
                 obj.put("result", "error");
@@ -504,115 +493,4 @@ public class Account_Accreditation implements GTransaction {
         
         return obj;
     }
-    
-    public JSONObject SearchCategory(int fnRow, String fsValue, boolean fbByCode){
-        String lsHeader = "ID»Category";
-        String lsColName = "sCategrCd»sDescript»";
-        String lsColCrit = "sCategrCd»sDescript";
-        String lsTable;
-        lsTable = "Category";
-        String lsSQL = " SELECT " +
-                            " sCategrCd, " +
-                            " sDescript, " +
-                            " sInvTypCd, " +
-                            " cRecdStat " +
-                      " FROM " + lsTable;
-        
-       
-        if (fbByCode)
-            lsSQL = MiscUtil.addCondition(lsSQL, "sCategrCd = " + SQLUtil.toSQL(fsValue)) + " GROUP BY sCategrCd";
-        else
-            lsSQL = MiscUtil.addCondition(lsSQL, "sDescript LIKE " + SQLUtil.toSQL("%" + fsValue + "%")) + " GROUP BY sCategrCd";
-        
-       
-      
-        JSONObject loJSON;
-        String lsValue;
-        System.out.println("lsSQL = " + lsSQL);
-        loJSON = ShowDialogFX.Search(poGRider, 
-                                        lsSQL, 
-                                        fsValue, 
-                                        lsHeader, 
-                                        lsColName, 
-                                        lsColCrit, 
-                                        fbByCode ? 0 :1);
-            
-        System.out.println("loJSON = " + loJSON.toJSONString());
-            
-            if (loJSON != null && !"error".equals((String) loJSON.get("result"))) {
-                System.out.println("json sCategrCd = " + (String) loJSON.get("sCategrCd"));
-                lsValue = (String) loJSON.get("sCategrCd");
-                setAccount(fnRow, "sCategrCd", (String) loJSON.get("sCategrCd"));
-//                setAccount(fnRow, "sDescript", (String) loJSON.get("sDescript"));
-                
-//                System.out.println("get sClientID = " + getAccount(fnRow, 4));
-                loJSON.put("result", "success");
-            }else {
-                loJSON.put("result", "error");
-                loJSON.put("message", "No Category information found for: " + fsValue + ", Please check Catergory Code and Description details.");
-                return loJSON;
-            }
-        return loJSON;
-    }
-    
-    public JSONObject SearchAccredetation(String fsValue, boolean fbByCode){
-        String lsHeader = "Transaction No»Category»Date";
-        String lsColName = "sTransNox»sCategrCd»dTransact";
-        String lsColCrit = "a.sTransNox»a.sCategrCd»a.dTransact";
-        String lsSQL = " SELECT " +
-                        " a.sTransNox, " +
-                        " a.cAcctType, " +
-                        " a.sClientID, " +
-                        " a.dTransact, " +
-                        " a.cAcctType, " +
-                        " a.sRemarksx, " +
-                        " a.cTranType, " +
-                        " a.sCategrCd, " +
-                        " a.cTranStat, " +
-                        " b.sCompnyNm " +
-                      " FROM Account_Client_Acccreditation a " +
-                        " LEFT JOIN Client_Master b " +
-                          " on a.sClientID = b.sClientID " +
-                        " LEFT JOIN client_address c " +
-                          " on a.sClientID = c.sClientID " +
-                        " LEFT JOIN Client_Institution_Contact_Person d " +
-                          " on d.sClientID = a.sClientID " ;
-                        
-        if (fbByCode){
-            lsSQL = MiscUtil.addCondition(lsSQL, "a.sTransNox LIKE " + SQLUtil.toSQL("%" + fsValue + "%") + " GROUP BY a.sTransNox");
-        }else{
-            lsSQL = MiscUtil.addCondition(lsSQL, "b.sCompnyNm LIKE " + SQLUtil.toSQL("%" + fsValue + "%")+ " GROUP BY a.sTransNox");
-        }
-        lsSQL = MiscUtil.addCondition(lsSQL, "a.cAcctType = " + SQLUtil.toSQL(psAccountType));
-        
-       
-           
-      
-        JSONObject loJSON;
-        String lsValue;
-            
-            
-       
-        System.out.println("lsSQL = " + lsSQL);
-        loJSON = ShowDialogFX.Search(poGRider, 
-                                        lsSQL, 
-                                        fsValue, 
-                                        lsHeader, 
-                                        lsColName, 
-                                        lsColCrit, 
-                                        fbByCode ? 0 :1);
-            
-        System.out.println("loJSON = " + loJSON.toJSONString());
-            
-            if (loJSON != null && !"error".equals((String) loJSON.get("result"))) {
-                System.out.println("sTransNox = " + (String) loJSON.get("sTransNox"));
-                lsValue = (String) loJSON.get("sTransNox");
-            }else {
-                loJSON.put("result", "error");
-                loJSON.put("message", "No client information found for: " + fsValue + ", Please check client type and client name details.");
-                return loJSON;
-            }
-        return openTransaction(lsValue);
-    }
-    
 }

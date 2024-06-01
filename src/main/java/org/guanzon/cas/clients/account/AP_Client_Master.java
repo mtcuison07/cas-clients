@@ -122,7 +122,7 @@ public class AP_Client_Master implements GRecord {
                         " LEFT JOIN TownCity e ON d.sTownIDxx = e.sTownIDxx" +
                         " LEFT JOIN Province f ON e.sProvIDxx = f.sProvIDxx";
         if (fbByCode)
-            lsSQL = MiscUtil.addCondition(lsSQL, "a.cClientTp = '0'  AND a.sClientIDLIKE " + SQLUtil.toSQL("%" + fsValue + "%")) + " GROUP BY a.sClientID";
+            lsSQL = MiscUtil.addCondition(lsSQL, "a.cClientTp = '0'  AND a.sClientID = " + SQLUtil.toSQL(fsValue)) + " GROUP BY a.sClientID";
         else
             lsSQL = MiscUtil.addCondition(lsSQL, "a.cClientTp = '0'  AND a.sCompnyNm LIKE " + SQLUtil.toSQL("%" + fsValue + "%")) + " GROUP BY a.sClientID";
         
@@ -154,6 +154,7 @@ public class AP_Client_Master implements GRecord {
                 setMaster(18, (String) loJSON.get("sCompnyNm"));
                 setMaster(2, (String) loJSON.get("sAddrssID"));
                 setMaster(19, (String) loJSON.get("xAddressx"));
+                setMaster(24, (String) loJSON.get("sTaxIDNox"));
 //                OpenClientLedger((String) loJSON.get("sClientID"));
                 checkData(poLedger1.openRecord((String) loJSON.get("sClientID")));
                 System.out.println("poLedger1 = " + poLedger1.openRecord((String) loJSON.get("sClientID")));

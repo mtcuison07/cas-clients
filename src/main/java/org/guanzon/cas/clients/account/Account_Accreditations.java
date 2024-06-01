@@ -23,20 +23,19 @@ import org.json.simple.JSONObject;
  *
  * @author Maynard
  */
-public class Account_Accreditation1 implements GTransaction {
+public class Account_Accreditations implements GTransaction {
 
     GRider poGRider;
     boolean pbWthParent;
     int pnEditMode;
     String psTranStatus;
     String psTransNox;
-
-    ArrayList<Model_Account_Accreditation> poModel;
+    Model_Account_Accreditation poModel;
     JSONObject poJSON;
     public String getTransNox(){
         return psTransNox;
     }
-    public Account_Accreditation1(GRider foGRider, boolean fbWthParent) {
+    public Account_Accreditations(GRider foGRider, boolean fbWthParent) {
         poGRider = foGRider;
         pbWthParent = fbWthParent;
         pnEditMode = EditMode.UNKNOWN;
@@ -46,11 +45,9 @@ public class Account_Accreditation1 implements GTransaction {
     public JSONObject newTransaction() {
         poJSON = new JSONObject();
         try{
-            poModel = new ArrayList<>();
+            poModel = new Model_Account_Accreditation(poGRider);
+            poModel.newRecord();
             
-            addDetail();
-                
-                
             poJSON.put("result", "success");
             poJSON.put("message", "initialized new record.");
             pnEditMode = EditMode.ADDNEW;
@@ -70,7 +67,7 @@ public class Account_Accreditation1 implements GTransaction {
         pnEditMode = EditMode.READY;
         poJSON = new JSONObject();
         
-        poJSON = OpenAccount(fsValue);
+        poJSON = poModel.openRecord(fsValue);
         return poJSON;
     }
 
@@ -92,12 +89,22 @@ public class Account_Accreditation1 implements GTransaction {
 
     @Override
     public JSONObject saveTransaction() {
+        poJSON = new JSONObject();
         if (!pbWthParent) {
             poGRider.beginTrans();
         }
 
-        poJSON = saveRecord("");
+       
+        ValidatorInterface validator = ValidatorFactory.make(ValidatorFactory.TYPE.Account_Accreditation, poModel);
+        poModel.setModifiedDate(poGRider.getServerDate());
 
+        if (!validator.isEntryOkay()){
+            poJSON.put("result", "error");
+            poJSON.put("message", validator.getMessage());
+            return poJSON;
+
+        }
+        poJSON = poModel.saveRecord();  
         if ("success".equals((String)poJSON.get("result"))) {
             if (!pbWthParent) {
                 poGRider.commitTrans();
@@ -122,14 +129,13 @@ public class Account_Accreditation1 implements GTransaction {
 
         if (getEditMode() == EditMode.READY || getEditMode() == EditMode.UPDATE) {
             
-            poJSON = saveRecord("Close");
-//            poJSON = poModel.setTranStatus(TransactionStatus.STATE_CLOSED);
-//
-//            if ("error".equals((String) poJSON.get("result"))) {
-//                return poJSON;
-//            }
-//
-//            poJSON = poModel.saveRecord();
+            poJSON = poModel.setTranStatus(TransactionStatus.STATE_CLOSED);
+
+            if ("error".equals((String) poJSON.get("result"))) {
+                return poJSON;
+            }
+
+            poJSON = poModel.saveRecord();
         } else {
             poJSON = new JSONObject();
             poJSON.put("result", "error");
@@ -144,14 +150,13 @@ public class Account_Accreditation1 implements GTransaction {
 
         if (getEditMode() == EditMode.READY
                 || getEditMode() == EditMode.UPDATE) {
-            poJSON = saveRecord("Post");
-//            poJSON = poModel.get(0).setTranStatus(TransactionStatus.STATE_POSTED);
-//
-//            if ("error".equals((String) poJSON.get("result"))) {
-//                return poJSON;
-//            }
-//
-//            poJSON = poModel.saveRecord();
+            poJSON = poModel.setTranStatus(TransactionStatus.STATE_POSTED);
+
+            if ("error".equals((String) poJSON.get("result"))) {
+                return poJSON;
+            }
+
+            poJSON = poModel.saveRecord();
         } else {
             poJSON = new JSONObject();
             poJSON.put("result", "error");
@@ -166,15 +171,13 @@ public class Account_Accreditation1 implements GTransaction {
 
         if (getEditMode() == EditMode.READY
                 || getEditMode() == EditMode.UPDATE) {
-            
-            poJSON = saveRecord("Void");
-//            poJSON = poModel.setTranStatus(TransactionStatus.STATE_VOID);
+            poJSON = poModel.setTranStatus(TransactionStatus.STATE_VOID);
+
+            if ("error".equals((String) poJSON.get("result"))) {
+                return poJSON;
+            }
 //
-//            if ("error".equals((String) poJSON.get("result"))) {
-//                return poJSON;
-//            }
-//
-//            poJSON = poModel.saveRecord();
+            poJSON = poModel.saveRecord();
         } else {
             poJSON = new JSONObject();
             poJSON.put("result", "error");
@@ -190,14 +193,14 @@ public class Account_Accreditation1 implements GTransaction {
         if (getEditMode() == EditMode.READY
                 || getEditMode() == EditMode.UPDATE) {
             
-            poJSON = saveRecord("Cancel");
-//            poJSON = poModel.setTranStatus(TransactionStatus.STATE_CANCELLED);
-//
-//            if ("error".equals((String) poJSON.get("result"))) {
-//                return poJSON;
-//            }
-//
-//            poJSON = poModel.saveRecord();
+            
+            poJSON = poModel.setTranStatus(TransactionStatus.STATE_CANCELLED);
+
+            if ("error".equals((String) poJSON.get("result"))) {
+                return poJSON;
+            }
+
+            poJSON = poModel.saveRecord();
         } else {
             poJSON = new JSONObject();
             poJSON.put("result", "error");
@@ -247,7 +250,7 @@ public class Account_Accreditation1 implements GTransaction {
 
         if (poJSON != null) {
 //            return poModel.openRecord((String) poJSON.get("sTransNox"));
-            return OpenAccount((String) poJSON.get("sTransNox"));
+            return openTransaction((String) poJSON.get("sTransNox"));
         } else {
             poJSON.put("result", "error");
             poJSON.put("message", "No record loaded to update.");
@@ -257,28 +260,64 @@ public class Account_Accreditation1 implements GTransaction {
 
     @Override
     public JSONObject searchMaster(String string, String string1, boolean bln) {
-        throw new UnsupportedOperationException("Not supported yet."); 
+        return searchMaster(poModel.getColumn(string), string1, bln);
     }
 
     @Override
     public JSONObject searchMaster(int i, String string, boolean bln) {
-        throw new UnsupportedOperationException("Not supported yet."); 
+        poJSON = new JSONObject();
+        switch(i){
+            case 1:
+               poJSON = SearchClient(string, bln);
+               break;
+            case 2: 
+                poJSON =SearchCategory(string, bln);
+                break;
+        }
+        return poJSON;
     }
 
     @Override
-    public Object getMasterModel() {
-        throw new UnsupportedOperationException("Not supported yet."); 
+    public Model_Account_Accreditation getMasterModel() {
+        return poModel;
+    }
+
+
+    
+    @Override
+    public JSONObject setMaster(int fnCol, Object foData) {
+        
+        JSONObject obj = new JSONObject();
+        obj.put("pnEditMode", pnEditMode);
+        if (pnEditMode != EditMode.UNKNOWN){
+            // Don't allow specific fields to assign values
+            if(!(fnCol == poModel.getColumn("sClientID") ||
+                fnCol == poModel.getColumn("cRecdStat") ||
+                fnCol == poModel.getColumn("sModified") ||
+                fnCol == poModel.getColumn("dModified"))){
+                
+                obj = poModel.setValue(fnCol, foData);
+            }
+        }
+        return obj;
     }
 
     @Override
-    public JSONObject setMaster(int i, Object o) {
-        throw new UnsupportedOperationException("Not supported yet."); 
+    public JSONObject setMaster(String fsCol, Object foData) {
+        return setMaster(poModel.getColumn(fsCol), foData);
     }
 
-    @Override
-    public JSONObject setMaster(String string, Object o) {
-        throw new UnsupportedOperationException("Not supported yet."); 
+    public Object getMaster(int fnCol) {
+        if(pnEditMode == EditMode.UNKNOWN)
+            return null;
+        else 
+            return poModel.getValue(fnCol);
     }
+
+    public Object getMaster(String fsCol) {
+        return getMaster(poModel.getColumn(fsCol));
+    }
+
 
     @Override
     public int getEditMode() {
@@ -289,35 +328,59 @@ public class Account_Accreditation1 implements GTransaction {
     public void setTransactionStatus(String string) {
         throw new UnsupportedOperationException("Not supported yet."); 
     }
-    
-    public ArrayList<Model_Account_Accreditation> getAccount(){return poModel;}
-    public void setAccount(ArrayList<Model_Account_Accreditation> foObj){poModel = foObj;}
-    
-    
-    public JSONObject setAccount(int fnRow, int fnIndex, Object foValue){ return poModel.get(fnRow).setValue(fnIndex, foValue);}
-    public JSONObject setAccount(int fnRow, String fsIndex, Object foValue){ return  poModel.get(fnRow).setValue(fsIndex, foValue);}
-    public Object getAccount(int fnRow, int fnIndex){return poModel.get(fnRow).getValue(fnIndex);}
-    public Object getAccount(int fnRow, String fsIndex){return poModel.get(fnRow).getValue(fsIndex);}
-    
-    public JSONObject searchMaster(int fnRow, String fsColumn, String fsValue, boolean fbByCode) {    
-        return searchMaster(poModel.get(fnRow).getColumn(fsColumn), fsValue, fbByCode);
+ 
+    public JSONObject SearchCategory(String fsValue, boolean fbByCode){
+        String lsHeader = "ID»Category";
+        String lsColName = "sCategrCd»sDescript»";
+        String lsColCrit = "sCategrCd»sDescript";
+        String lsTable;
+        lsTable = "Category";
+        String lsSQL = " SELECT " +
+                            " sCategrCd, " +
+                            " sDescript, " +
+                            " sInvTypCd, " +
+                            " cRecdStat " +
+                      " FROM " + lsTable;
+        
+       
+        if (fbByCode)
+            lsSQL = MiscUtil.addCondition(lsSQL, "sCategrCd = " + SQLUtil.toSQL(fsValue)) + " GROUP BY sCategrCd";
+        else
+            lsSQL = MiscUtil.addCondition(lsSQL, "sDescript LIKE " + SQLUtil.toSQL("%" + fsValue + "%")) + " GROUP BY sCategrCd";
+        
+       
+      
+        JSONObject loJSON;
+        String lsValue;
+        System.out.println("lsSQL = " + lsSQL);
+        loJSON = ShowDialogFX.Search(poGRider, 
+                                        lsSQL, 
+                                        fsValue, 
+                                        lsHeader, 
+                                        lsColName, 
+                                        lsColCrit, 
+                                        fbByCode ? 0 :1);
+            
+        System.out.println("loJSON = " + loJSON.toJSONString());
+            
+            if (loJSON != null && !"error".equals((String) loJSON.get("result"))) {
+                System.out.println("json sCategrCd = " + (String) loJSON.get("sCategrCd"));
+                lsValue = (String) loJSON.get("sCategrCd");
+                setMaster("sCategrCd", (String) loJSON.get("sCategrCd"));
+                loJSON.put("result", "success");
+            }else {
+                loJSON.put("result", "error");
+                loJSON.put("message", "No Category information found for: " + fsValue + ", Please check Catergory Code and Description details.");
+                return loJSON;
+            }
+        return loJSON;
     }
-
-    public JSONObject searchMaster(int fnRow, int fnColumn, String fsValue, boolean fbByCode) {
-        poJSON = new JSONObject();
-        switch(fnRow){
-            case 14: //sClientNm
-                poJSON = SearchClient(fnRow, fsValue, fbByCode);
-                break;
-        }
-        return poJSON;
-    }
-    public JSONObject SearchClient(int fnRow, String fsValue, boolean fbByCode){
+    public JSONObject SearchClient(String fsValue, boolean fbByCode){
         String lsHeader = "ID»Name»Contact Person";
         String lsColName = "sClientID»sCompnyNm»sCPerson1";
         String lsColCrit = "a.sClientID»b.sCompnyNm»c.sCPerson1";
         String lsTable;
-        if(poModel.get(fnRow).getAcctType().equalsIgnoreCase("0")){
+        if(poModel.getAcctType().equalsIgnoreCase("0")){
             lsTable = "AP_Client_Master";
         }else{
             lsTable = "AR_Client_Master";
@@ -354,10 +417,10 @@ public class Account_Accreditation1 implements GTransaction {
             if (loJSON != null && !"error".equals((String) loJSON.get("result"))) {
                 System.out.println("json sClientID = " + (String) loJSON.get("sClientID"));
                 lsValue = (String) loJSON.get("sClientID");
-                setAccount(fnRow, "sClientID", (String) loJSON.get("sClientID"));
-                setAccount(fnRow, "sContctID", (String) loJSON.get("sContctID"));
-                setAccount(fnRow, "sCPerson1", (String) loJSON.get("sCPerson1"));
-                setAccount(fnRow, "sCompnyNm", (String) loJSON.get("sCompnyNm"));
+                setMaster("sClientID", (String) loJSON.get("sClientID"));
+                setMaster("sContctID", (String) loJSON.get("sContctID"));
+                setMaster("sCPerson1", (String) loJSON.get("sCPerson1"));
+                setMaster("sCompnyNm", (String) loJSON.get("sCompnyNm"));
                 
 //                System.out.println("get sClientID = " + getAccount(fnRow, 4));
                 loJSON.put("result", "success");
@@ -368,77 +431,11 @@ public class Account_Accreditation1 implements GTransaction {
             }
         return loJSON;
     }
-    public JSONObject addDetail(){
-        poJSON = new JSONObject();
-        
-        psTransNox = (MiscUtil.getNextCode(new Model_Account_Accreditation(poGRider).getTable(), "sTransNox", true, poGRider.getConnection(), poGRider.getBranchCode()));
-        if (poModel.isEmpty()){
-            poModel.add(new Model_Account_Accreditation(poGRider));
-            poModel.get(0).newRecord();
-            poJSON.put("result", "success");
-            poJSON.put("message", "Address add record.");
-            
-
-        } else {
-            
-            ValidatorInterface validator = ValidatorFactory.make(ValidatorFactory.TYPE.Account_Accreditation, poModel.get(poModel.size()-1));
-            if(!validator.isEntryOkay()){
-                poJSON.put("result", "error");
-//                poJSON.put("message", poModel.get(poModel.size()-1).getClientID());
-                poJSON.put("message", validator.getMessage());
-                return poJSON;
-            }
-            poModel.add(new Model_Account_Accreditation(poGRider));
-            poModel.get(poModel.size()-1).newRecord();
-            
-            poJSON.put("result", "success");
-            poJSON.put("message", "Address add record.");
-        }
-        return poJSON;
-    }
-    public JSONObject OpenAccount(String fsValue){
-        Model_Account_Accreditation model = new Model_Account_Accreditation(poGRider);
-        String lsSQL = MiscUtil.addCondition(model.makeSQL(), "sTransNox = " + SQLUtil.toSQL(fsValue));
-        System.out.println(lsSQL);
-        ResultSet loRS = poGRider.executeQuery(lsSQL);
-
-        try {
-            int lnctr = 0;
-            if (MiscUtil.RecordCount(loRS) > 0) {
-                poModel = new ArrayList<>();
-                while(loRS.next()){
-                        poModel.add(new Model_Account_Accreditation(poGRider));
-                        
-                        poModel.get(poModel.size() - 1).openRecord("sTransNox = " + SQLUtil.toSQL(loRS.getString("sTransNox")));
-                        
-                        pnEditMode = EditMode.UPDATE;
-                        lnctr++;
-                        poJSON.put("result", "success");
-                        poJSON.put("message", "Record loaded successfully.");
-                    } 
-                
-                System.out.println("lnctr = " + lnctr);
-                
-            }else{
-                poModel = new ArrayList<>();
-                addDetail();
-                poJSON.put("result", "error");
-                poJSON.put("continue", true);
-                poJSON.put("message", "No record selected.");
-            }
-            
-            MiscUtil.close(loRS);
-        } catch (SQLException e) {
-            poJSON.put("result", "error");
-            poJSON.put("message", e.getMessage());
-        }
-        return poJSON;
-    }
     
     private JSONObject saveRecord(String type){
         
         JSONObject obj = new JSONObject();
-        if (poModel.size()<= 0){
+        if (poModel == null){
             obj.put("result", "error");
             obj.put("message", "No client address detected. Please encode client address.");
             return obj;
@@ -448,38 +445,37 @@ public class Account_Accreditation1 implements GTransaction {
         String lsSQL;
         Model_Account_Accreditation loModel = new Model_Account_Accreditation(poGRider);
         String lsTransNox = MiscUtil.getNextCode(loModel.getTable(), "sTransNox", true, poGRider.getConnection(), poGRider.getBranchCode());        
-        for (lnCtr = 0; lnCtr <= poModel.size() -1; lnCtr++){
-            if("Cancel".equals(type)){
-                obj = poModel.get(lnCtr).setTranStatus(TransactionStatus.STATE_CANCELLED);
+        if("Cancel".equals(type)){
+                obj = poModel.setTranStatus(TransactionStatus.STATE_CANCELLED);
 //
                 if ("error".equals((String) obj.get("result"))) {
                     return obj;
                 }
                 
             }else if("Void".equals(type)){
-                obj = poModel.get(lnCtr).setTranStatus(TransactionStatus.STATE_VOID);
+                obj = poModel.setTranStatus(TransactionStatus.STATE_VOID);
 //
                 if ("error".equals((String) obj.get("result"))) {
                     return obj;
                 }
             }else if("Post".equals(type)){
-                obj = poModel.get(lnCtr).setTranStatus(TransactionStatus.STATE_POSTED);
+                obj = poModel.setTranStatus(TransactionStatus.STATE_POSTED);
 //
                 if ("error".equals((String) obj.get("result"))) {
                     return obj;
                 }
                 
             }else if("Close".equals(type)){
-                obj = poModel.get(lnCtr).setTranStatus(TransactionStatus.STATE_CLOSED);
+                obj = poModel.setTranStatus(TransactionStatus.STATE_CLOSED);
 //
                 if ("error".equals((String) obj.get("result"))) {
                     return obj;
                 }
                 
             }
-            ValidatorInterface validator = ValidatorFactory.make(ValidatorFactory.TYPE.Account_Accreditation, poModel.get(lnCtr));
-            poModel.get(lnCtr).setModifiedDate(poGRider.getServerDate());
-            poModel.get(lnCtr).setTransactionNo(lsTransNox);
+            ValidatorInterface validator = ValidatorFactory.make(ValidatorFactory.TYPE.Account_Accreditation, poModel);
+            poModel.setModifiedDate(poGRider.getServerDate());
+            poModel.setTransactionNo(lsTransNox);
             
             if (!validator.isEntryOkay()){
                 obj.put("result", "error");
@@ -487,9 +483,7 @@ public class Account_Accreditation1 implements GTransaction {
                 return obj;
             
             }
-            obj = poModel.get(lnCtr).saveRecord();
-
-        }    
+            obj = poModel.saveRecord();  
         
         return obj;
     }

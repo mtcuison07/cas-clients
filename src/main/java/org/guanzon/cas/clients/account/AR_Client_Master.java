@@ -153,6 +153,7 @@ public class AR_Client_Master implements GRecord {
                 setMaster(18, (String) loJSON.get("sCompnyNm"));
                 setMaster(2, (String) loJSON.get("sAddrssID"));
                 setMaster(19, (String) loJSON.get("xAddressx"));
+                setMaster(24, (String) loJSON.get("sTaxIDNox"));
 //                OpenClientLedger((String) loJSON.get("sClientID"));
                 checkData(poLedger1.openRecord((String) loJSON.get("sClientID")));
                 System.out.println("poLedger1 = " + poLedger1.openRecord((String) loJSON.get("sClientID")));

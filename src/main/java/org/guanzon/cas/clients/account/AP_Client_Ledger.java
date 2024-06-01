@@ -214,7 +214,7 @@ public class AP_Client_Ledger implements GRecord {
 
     @Override
     public Model_AP_Client_Ledger getModel() {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+        throw new UnsupportedOperationException("Not supported yet.");  // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
     public ArrayList<Model_AP_Client_Ledger> getMaster(){return poModel;}
     public void setMaster(ArrayList<Model_AP_Client_Ledger> foObj){poModel = foObj;}

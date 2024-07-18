@@ -28,6 +28,12 @@
             <artifactId>cas-models</artifactId>
             <version>${project.version}</version>
         </dependency>
+        
+          <dependency>
+               <groupId>org.guanzon</groupId>
+               <artifactId>cas-parameters</artifactId>
+               <version>0.1-SNAPSHOT</version>
+          </dependency>
     </dependencies>
    <build>
         <plugins>

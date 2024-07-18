@@ -22,6 +22,7 @@ import org.guanzon.cas.model.clients.Model_Client_Address;
 import org.guanzon.cas.model.clients.Model_Client_Master;
 import org.guanzon.cas.model.clients.ap.Model_AP_Client_Master;
 import org.guanzon.cas.models.Model_AP_Client_Ledger;
+import org.guanzon.cas.parameters.Category;
 import org.guanzon.cas.validators.ValidatorFactory;
 import org.guanzon.cas.validators.ValidatorInterface;
 import org.json.simple.JSONObject;
@@ -80,6 +81,10 @@ public class AP_Client_Master implements GRecord {
     @Override
     public int getEditMode() {
         return pnEditMode;
+    }
+
+    public void setEditMode(int editMode) {
+        pnEditMode = editMode;
     }
 
     private Connection setConnection(){
@@ -308,8 +313,35 @@ public class AP_Client_Master implements GRecord {
 //            poModel.newRecord();
 //            
             poModel.newRecord();
+            Category loCateg = new Category(poGRider, true);
+            switch (poGRider.getDivisionCode()) {
+                case "0"://mobilephone
+                    loCateg.openRecord("0002");
+                    break;
 
-            //init detail
+                case "1"://motorycycle
+                    loCateg.openRecord("0001");
+                    break;
+
+                case "2"://Auto Group - Honda Cars
+                case "5"://Auto Group - Nissan
+                case "6"://Auto Group - Any
+                    loCateg.openRecord("0003");
+                    break;
+
+                case "3"://Hospitality
+                case "4"://Pedritos Group
+                    loCateg.openRecord("0004");
+                    break;
+
+                case "7"://Guanzon Services Office
+                     break;
+
+                case "8"://Main Office
+                    break;
+            }
+            poModel.setCategoryCode((String) loCateg.getMaster("sCategrCd"));
+            poModel.setCategoryName((String) loCateg.getMaster("sDescript"));
             //init detail
 //            poLedger = new ArrayList<>();
             
@@ -489,9 +521,9 @@ public class AP_Client_Master implements GRecord {
         }
 
         if (!fbByCode) {
-            lsFilter = "sCompnyNm LIKE " + SQLUtil.toSQL("%" + fsValue + "%");
+            lsFilter = "b.sCompnyNm LIKE " + SQLUtil.toSQL("%" + fsValue + "%");
         } else {
-            lsFilter = "sClientID LIKE " + SQLUtil.toSQL("%" + fsValue + "%");
+            lsFilter = "a.sClientID LIKE " + SQLUtil.toSQL("%" + fsValue + "%");
         }
         String lsSQL  = "SELECT" +
                         "  a.sClientID" +
@@ -558,55 +590,26 @@ public class AP_Client_Master implements GRecord {
         return poModel;
     }
 
+    
     public JSONObject SearchCategory(String fsValue, boolean fbByCode){
-        String lsHeader = "ID»Category";
-        String lsColName = "sCategrCd»sDescript»";
-        String lsColCrit = "sCategrCd»sDescript";
-        String lsTable;
-        lsTable = "Category";
-        String lsSQL = " SELECT " +
-                            " sCategrCd, " +
-                            " sDescript, " +
-                            " sInvTypCd, " +
-                            " cRecdStat " +
-                      " FROM " + lsTable;
         
-       
-        if (fbByCode)
-            lsSQL = MiscUtil.addCondition(lsSQL, "sCategrCd = " + SQLUtil.toSQL(fsValue)) + " GROUP BY sCategrCd";
-        else
-            lsSQL = MiscUtil.addCondition(lsSQL, "sDescript LIKE " + SQLUtil.toSQL("%" + fsValue + "%")) + " GROUP BY sCategrCd";
-        
-       
-      
         JSONObject loJSON;
-        String lsValue;
-        System.out.println("lsSQL = " + lsSQL);
-        loJSON = ShowDialogFX.Search(poGRider, 
-                                        lsSQL, 
-                                        fsValue, 
-                                        lsHeader, 
-                                        lsColName, 
-                                        lsColCrit, 
-                                        fbByCode ? 0 :1);
-            
-        System.out.println("loJSON = " + loJSON.toJSONString());
-            
-            if (loJSON != null && !"error".equals((String) loJSON.get("result"))) {
-                System.out.println("json sCategrCd = " + (String) loJSON.get("sCategrCd"));
-                lsValue = (String) loJSON.get("sCategrCd");
+        Category loCategory = new Category(poGRider, true);
+        loCategory.setRecordStatus(psTranStatus);
+        loJSON = loCategory.searchRecord(fsValue, fbByCode);
+
+        if (loJSON != null){
                 setMaster("sCategrCd", (String) loJSON.get("sCategrCd"));
-                setMaster("xCategrNm", (String) loJSON.get("sDescript"));
-//                setAccount(fnRow, "sDescript", (String) loJSON.get("sDescript"));
-                
-//                System.out.println("get sClientID = " + getAccount(fnRow, 4));
-                loJSON.put("result", "success");
-            }else {
-                loJSON.put("result", "error");
-                loJSON.put("message", "No Category information found for: " + fsValue + ", Please check Catergory Code and Description details.");
-                return loJSON;
-            }
-        return loJSON;
+//                setMaster("xCategrNm", (String) loJSON.get("sDescript"));
+//            setMaster(fnCol, (String) loCategory.getMaster("sCategrCd"));
+//                    setMaster("xCategNm1", (String)loCategory.getMaster("sDescript"));
+
+            return setMaster("xCategrNm", (String)loCategory.getMaster("sDescript"));
+        } else {
+            loJSON.put("result", "error");
+            loJSON.put("message", "No Category information found for: " + fsValue + ", Please check Catergory Code and Description details.");
+            return loJSON;
+        }
     }
 
 }

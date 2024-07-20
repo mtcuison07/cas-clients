@@ -17,6 +17,7 @@ import org.guanzon.cas.model.clients.Model_Client_Master;
 import org.guanzon.cas.model.clients.ar.Model_AR_Client_Ledger;
 import org.guanzon.cas.model.clients.ar.Model_AR_Client_Master;
 import org.guanzon.cas.models.Model_Account_Accreditation;
+import org.guanzon.cas.parameters.Category;
 import org.guanzon.cas.validators.ValidatorFactory;
 import static org.guanzon.cas.validators.ValidatorFactory.ClientTypes.COMPANY;
 import static org.guanzon.cas.validators.ValidatorFactory.ClientTypes.INDIVIDUAL;
@@ -298,7 +299,7 @@ public class Account_Accreditation implements GTransaction {
 
     @Override
     public void setTransactionStatus(String string) {
-        throw new UnsupportedOperationException("Not supported yet."); 
+       psTranStatus = string;
     }
     
     public ArrayList<Model_Account_Accreditation> getAccount(){return poModel;}
@@ -388,6 +389,35 @@ public class Account_Accreditation implements GTransaction {
             poModel.get(0).newRecord();
             poJSON.put("result", "success");
             poJSON.put("message", "Address add record.");
+            Category loCateg = new Category(poGRider, true);
+            switch (poGRider.getDivisionCode()) {
+                case "0"://mobilephone
+                    loCateg.openRecord("0002");
+                    break;
+
+                case "1"://motorycycle
+                    loCateg.openRecord("0001");
+                    break;
+
+                case "2"://Auto Group - Honda Cars
+                case "5"://Auto Group - Nissan
+                case "6"://Auto Group - Any
+                    loCateg.openRecord("0003");
+                    break;
+
+                case "3"://Hospitality
+                case "4"://Pedritos Group
+                    loCateg.openRecord("0004");
+                    break;
+
+                case "7"://Guanzon Services Office
+                     break;
+
+                case "8"://Main Office
+                    break;
+            }
+            poModel.get(0).setCategoryCode((String) loCateg.getMaster("sCategrCd"));
+            poModel.get(0).setCategoryName((String) loCateg.getMaster("sDescript"));
             
 
         } else {
@@ -402,6 +432,35 @@ public class Account_Accreditation implements GTransaction {
             poModel.add(new Model_Account_Accreditation(poGRider));
             poModel.get(poModel.size()-1).newRecord();
             
+            Category loCateg = new Category(poGRider, true);
+            switch (poGRider.getDivisionCode()) {
+                case "0"://mobilephone
+                    loCateg.openRecord("0002");
+                    break;
+
+                case "1"://motorycycle
+                    loCateg.openRecord("0001");
+                    break;
+
+                case "2"://Auto Group - Honda Cars
+                case "5"://Auto Group - Nissan
+                case "6"://Auto Group - Any
+                    loCateg.openRecord("0003");
+                    break;
+
+                case "3"://Hospitality
+                case "4"://Pedritos Group
+                    loCateg.openRecord("0004");
+                    break;
+
+                case "7"://Guanzon Services Office
+                     break;
+
+                case "8"://Main Office
+                    break;
+            }
+            poModel.get(poModel.size()-1).setCategoryCode((String) loCateg.getMaster("sCategrCd"));
+            poModel.get(poModel.size()-1).setCategoryName((String) loCateg.getMaster("sDescript"));
             poJSON.put("result", "success");
             poJSON.put("message", "Address add record.");
         }
@@ -409,7 +468,7 @@ public class Account_Accreditation implements GTransaction {
     }
     public JSONObject OpenAccount(String fsValue){
         Model_Account_Accreditation model = new Model_Account_Accreditation(poGRider);
-        String lsSQL = MiscUtil.addCondition(model.getSQL(), "sTransNox = " + SQLUtil.toSQL(fsValue));
+        String lsSQL = MiscUtil.addCondition(model.getSQL(), "a.sTransNox = " + SQLUtil.toSQL(fsValue));
         System.out.println(lsSQL);
         ResultSet loRS = poGRider.executeQuery(lsSQL);
 
@@ -504,56 +563,59 @@ public class Account_Accreditation implements GTransaction {
         
         return obj;
     }
-    
     public JSONObject SearchCategory(int fnRow, String fsValue, boolean fbByCode){
-        String lsHeader = "ID»Category";
-        String lsColName = "sCategrCd»sDescript»";
-        String lsColCrit = "sCategrCd»sDescript";
-        String lsTable;
-        lsTable = "Category";
-        String lsSQL = " SELECT " +
-                            " sCategrCd, " +
-                            " sDescript, " +
-                            " sInvTypCd, " +
-                            " cRecdStat " +
-                      " FROM " + lsTable;
         
-       
-        if (fbByCode)
-            lsSQL = MiscUtil.addCondition(lsSQL, "sCategrCd = " + SQLUtil.toSQL(fsValue)) + " GROUP BY sCategrCd";
-        else
-            lsSQL = MiscUtil.addCondition(lsSQL, "sDescript LIKE " + SQLUtil.toSQL("%" + fsValue + "%")) + " GROUP BY sCategrCd";
-        
-       
-      
         JSONObject loJSON;
-        String lsValue;
-        System.out.println("lsSQL = " + lsSQL);
-        loJSON = ShowDialogFX.Search(poGRider, 
-                                        lsSQL, 
-                                        fsValue, 
-                                        lsHeader, 
-                                        lsColName, 
-                                        lsColCrit, 
-                                        fbByCode ? 0 :1);
-            
-        System.out.println("loJSON = " + loJSON.toJSONString());
-            
-            if (loJSON != null && !"error".equals((String) loJSON.get("result"))) {
-                System.out.println("json sCategrCd = " + (String) loJSON.get("sCategrCd"));
-                lsValue = (String) loJSON.get("sCategrCd");
-                setAccount(fnRow, "sCategrCd", (String) loJSON.get("sCategrCd"));
-//                setAccount(fnRow, "sDescript", (String) loJSON.get("sDescript"));
-                
-//                System.out.println("get sClientID = " + getAccount(fnRow, 4));
-                loJSON.put("result", "success");
-            }else {
-                loJSON.put("result", "error");
-                loJSON.put("message", "No Category information found for: " + fsValue + ", Please check Catergory Code and Description details.");
-                return loJSON;
-            }
-        return loJSON;
+        Category loCategory = new Category(poGRider, true);
+        loCategory.setRecordStatus(psTranStatus);
+        loJSON = loCategory.searchRecord(fsValue, fbByCode);
+
+        if (loJSON != null){
+//                setMaster("sCategrCd", (String) loJSON.get("sCategrCd"));
+//                setMaster("xCategrNm", (String) loJSON.get("sDescript"));
+//            setMaster(fnCol, (String) loCategory.getMaster("sCategrCd"));
+//                    setMaster("xCategNm1", (String)loCategory.getMaster("sDescript"));
+
+            poModel.get(fnRow).setCategoryCode((String) loCategory.getMaster("sCategrCd"));
+            poModel.get(fnRow).setCategoryName((String) loCategory.getMaster("sDescript"));
+            return setAccount(fnRow, "xCategrNm", (String)loCategory.getMaster("sDescript"));
+        } else {
+            loJSON = new JSONObject();
+            loJSON.put("result", "error");
+            loJSON.put("message", "No Category information found for: " + fsValue + ", Please check Catergory Code and Description details.");
+            return loJSON;
+        }
     }
+//    
+//    public JSONObject SearchCategory(int fnRow, String fsValue, boolean fbByCode){
+//         JSONObject loJSON;
+//        Category loCategory = new Category(poGRider, true);
+//        loCategory.setRecordStatus(psTranStatus);
+//        loJSON = loCategory.searchRecord(fsValue, fbByCode);
+//
+//            
+//        if (loJSON != null && !"error".equals((String) loJSON.get("result"))) {
+////            System.out.println("json sCategrCd = " + (String) loJSON.get("sCategrCd"));
+//////                lsValue = (String) loJSON.get("sCategrCd");
+////            setAccount(fnRow, "sCategrCd", (String) loJSON.get("sCategrCd"));
+//////                setAccount(fnRow, "sDescript", (String) loJSON.get("sDescript"));
+////
+//////                System.out.println("get sClientID = " + getAccount(fnRow, 4));
+////            loJSON = setAccount(fnRow, "xCategrNm", (String) loJSON.get("sDescript"));
+//            
+//            setAccount(fnRow, "sCategrCd", (String) loCategory.getMaster("sCategrCd"));
+////                setMaster("xCategrNm", (String) loJSON.get("sDescript"));
+////            setMaster(fnCol, (String) loCategory.getMaster("sCategrCd"));
+////                    setMaster("xCategNm1", (String)loCategory.getMaster("sDescript"));
+//
+//            return setAccount(fnRow, "xCategrNm", (String)loCategory.getMaster("sDescript"));
+//        }else {
+//            loJSON.put("result", "error");
+//            loJSON.put("message", "No Category information found for: " + fsValue + ", Please check Catergory Code and Description details.");
+//            return loJSON;
+//        }
+////        return loJSON;
+//    }
     
     public JSONObject SearchAccredetation(String fsValue, boolean fbByCode){
         String lsHeader = "Transaction No»Category»Date";
@@ -587,7 +649,7 @@ public class Account_Accreditation implements GTransaction {
         
        
            
-      
+        System.out.println("lsSQL = " + lsSQL);
         JSONObject loJSON;
         String lsValue;
             
@@ -606,13 +668,13 @@ public class Account_Accreditation implements GTransaction {
             
             if (loJSON != null && !"error".equals((String) loJSON.get("result"))) {
                 System.out.println("sTransNox = " + (String) loJSON.get("sTransNox"));
-                lsValue = (String) loJSON.get("sTransNox");
+                
+                return openTransaction((String) loJSON.get("sTransNox"));
             }else {
                 loJSON.put("result", "error");
                 loJSON.put("message", "No client information found for: " + fsValue + ", Please check client type and client name details.");
                 return loJSON;
             }
-        return openTransaction(lsValue);
     }
     
 }

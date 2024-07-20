@@ -199,7 +199,13 @@ public class Client_Master implements GRecord{
     public JSONObject saveRecord() {
         
         poJSON = new JSONObject();  
-        ValidatorInterface validator = ValidatorFactory.make(types,  ValidatorFactory.TYPE.Client_Master, poClient);
+        ValidatorInterface validator;
+        if(poClient.getClientType().equals("0")){
+            validator = ValidatorFactory.make(ValidatorFactory.ClientTypes.COMPANY,  ValidatorFactory.TYPE.Client_Master, poClient);
+        }else{
+            validator = ValidatorFactory.make(ValidatorFactory.ClientTypes.INDIVIDUAL,  ValidatorFactory.TYPE.Client_Master, poClient);
+        }
+        
         if (!validator.isEntryOkay()){
             poJSON.put("result", "error");
             poJSON.put("message", validator.getMessage());

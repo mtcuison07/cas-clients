@@ -165,6 +165,7 @@ public class AP_Client_Master implements GRecord {
                 System.out.println("poLedger1 = " + poLedger1.openRecord((String) loJSON.get("sClientID")));
                 loJSON.put("result", "success");
             }else {
+                loJSON = new JSONObject();
                 loJSON.put("result", "error");
                 loJSON.put("message", "No client information found for: " + fsValue + ", Please check client type and client name details.");
                 return loJSON;
@@ -210,6 +211,7 @@ public class AP_Client_Master implements GRecord {
                 setMaster(23, (String) loJSON.get("sDescript"));
                 loJSON.put("result", "success");
             }else {
+                loJSON = new JSONObject();
                 loJSON.put("result", "error");
                 loJSON.put("message", "No client information found for: " + fsValue + ", Please check client type and client name details.");
                 return loJSON;
@@ -362,6 +364,7 @@ public class AP_Client_Master implements GRecord {
                
         }catch(NullPointerException e){
             
+            poJSON = new JSONObject();
             poJSON.put("result", "error");
             poJSON.put("message", e.getMessage());
         }

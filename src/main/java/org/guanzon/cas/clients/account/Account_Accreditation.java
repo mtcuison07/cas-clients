@@ -374,6 +374,7 @@ public class Account_Accreditation implements GTransaction {
 //                System.out.println("get sClientID = " + getAccount(fnRow, 4));
                 loJSON.put("result", "success");
             }else {
+                loJSON = new JSONObject();
                 loJSON.put("result", "error");
                 loJSON.put("message", "No client information found for: " + fsValue + ", Please check client type and client name details.");
                 return loJSON;

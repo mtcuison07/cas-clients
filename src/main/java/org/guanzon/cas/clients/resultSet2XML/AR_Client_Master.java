@@ -2,9 +2,8 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package org.guanzon.cas.clients.account;
+package org.guanzon.cas.clients.resultSet2XML;
 
-import org.guanzon.cas.clients.account.*;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -17,7 +16,11 @@ import org.guanzon.appdriver.constant.EditMode;
 import org.guanzon.appdriver.constant.TransactionStatus;
 import org.guanzon.appdriver.constant.UserRight;
 import org.guanzon.appdriver.iface.GRecord;
+import org.guanzon.appdriver.iface.GTransaction;
 import org.guanzon.cas.clients.Client_Master;
+import org.guanzon.cas.clients.account.AR_Client_Ledger;
+import org.guanzon.cas.model.clients.Model_Client_Address;
+import org.guanzon.cas.model.clients.Model_Client_Master;
 import org.guanzon.cas.model.clients.ar.Model_AR_Client_Master;
 import org.guanzon.cas.parameters.Category;
 import org.guanzon.cas.validators.ValidatorFactory;
@@ -80,10 +83,6 @@ public class AR_Client_Master implements GRecord {
         return pnEditMode;
     }
 
-    public void setEditMode(int editMode) {
-        pnEditMode = editMode;
-    }
-
     private Connection setConnection(){
         Connection foConn;
         
@@ -124,7 +123,7 @@ public class AR_Client_Master implements GRecord {
                         " LEFT JOIN TownCity e ON d.sTownIDxx = e.sTownIDxx" +
                         " LEFT JOIN Province f ON e.sProvIDxx = f.sProvIDxx";
         if (fbByCode)
-            lsSQL = MiscUtil.addCondition(lsSQL, "a.cClientTp = '0'  AND a.sClientID = " + SQLUtil.toSQL(fsValue)) + " GROUP BY a.sClientID";
+            lsSQL = MiscUtil.addCondition(lsSQL, "a.cClientTp = '0'  AND a.sClientID LIKE " + SQLUtil.toSQL("%" + fsValue + "%")) + " GROUP BY a.sClientID";
         else
             lsSQL = MiscUtil.addCondition(lsSQL, "a.cClientTp = '0'  AND a.sCompnyNm LIKE " + SQLUtil.toSQL("%" + fsValue + "%")) + " GROUP BY a.sClientID";
         
@@ -207,7 +206,6 @@ public class AR_Client_Master implements GRecord {
                 setMaster(23, (String) loJSON.get("sDescript"));
                 loJSON.put("result", "success");
             }else {
-                loJSON = new JSONObject();
                 loJSON.put("result", "error");
                 loJSON.put("message", "No client information found for: " + fsValue + ", Please check client type and client name details.");
                 return loJSON;
@@ -341,6 +339,7 @@ public class AR_Client_Master implements GRecord {
             poModel.setCategoryCode((String) loCateg.getMaster("sCategrCd"));
             poModel.setCategoryName((String) loCateg.getMaster("sDescript"));
             //init detail
+            //init detail
 //            poLedger = new ArrayList<>();
             
             if (poModel == null){
@@ -376,6 +375,36 @@ public class AR_Client_Master implements GRecord {
         poModel = new Model_AR_Client_Master(poGRider);
         poJSON = poModel.openRecord(fsValue);
         
+        Category loCateg = new Category(poGRider, true);
+        switch (poGRider.getDivisionCode()) {
+                case "0"://mobilephone
+                    loCateg.openRecord("0002");
+                    break;
+
+                case "1"://motorycycle
+                    loCateg.openRecord("0001");
+                    break;
+
+                case "2"://Auto Group - Honda Cars
+                case "5"://Auto Group - Nissan
+                case "6"://Auto Group - Any
+                    loCateg.openRecord("0003");
+                    break;
+
+                case "3"://Hospitality
+                case "4"://Pedritos Group
+                    loCateg.openRecord("0004");
+                    break;
+
+                case "7"://Guanzon Services Office
+                     break;
+
+                case "8"://Main Office
+                    break;
+            }
+            poModel.setCategoryCode((String) loCateg.getMaster("sCategrCd"));
+            poModel.setCategoryCode((String) loCateg.getMaster("sDescript"));
+
         poJSON = checkData(poLedger1.openRecord(fsValue));
 //        poJSON = checkData(OpenClientLedger(fsValue));
         return poJSON;
@@ -572,7 +601,6 @@ public class AR_Client_Master implements GRecord {
                 lsColCrit,
                 fbByCode ? 0 : 1);
         
-
         System.out.println("poJSON = " + poJSON);
         if (poJSON != null && !"error".equals((String) poJSON.get("result"))) {
             return openRecord((String)poJSON.get("sClientID"));
@@ -587,8 +615,6 @@ public class AR_Client_Master implements GRecord {
     public Model_AR_Client_Master getModel() {
         return poModel;
     }
-
-    
     public JSONObject SearchCategory(String fsValue, boolean fbByCode){
         
         JSONObject loJSON;
@@ -604,7 +630,6 @@ public class AR_Client_Master implements GRecord {
 
             return setMaster("xCategrNm", (String)loCategory.getMaster("sDescript"));
         } else {
-            loJSON = new JSONObject();
             loJSON.put("result", "error");
             loJSON.put("message", "No Category information found for: " + fsValue + ", Please check Catergory Code and Description details.");
             return loJSON;

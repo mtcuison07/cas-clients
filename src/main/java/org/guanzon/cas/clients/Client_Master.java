@@ -199,13 +199,22 @@ public class Client_Master implements GRecord{
     public JSONObject saveRecord() {
         
         poJSON = new JSONObject();  
+        
+        
         ValidatorInterface validator;
+        
         if(poClient.getClientType().equals("0")){
             validator = ValidatorFactory.make(ValidatorFactory.ClientTypes.COMPANY,  ValidatorFactory.TYPE.Client_Master, poClient);
         }else{
             validator = ValidatorFactory.make(ValidatorFactory.ClientTypes.INDIVIDUAL,  ValidatorFactory.TYPE.Client_Master, poClient);
         }
         
+        
+        
+        if(types.equals(ValidatorFactory.ClientTypes.STANDARD)){
+            poClient.setActive(false);
+            validator = ValidatorFactory.make(ValidatorFactory.ClientTypes.STANDARD,  ValidatorFactory.TYPE.Client_Master, poClient);
+        }
         if (!validator.isEntryOkay()){
             poJSON.put("result", "error");
             poJSON.put("message", validator.getMessage());
@@ -213,9 +222,6 @@ public class Client_Master implements GRecord{
         }
         
         if (!pbWtParent) poGRider.beginTrans();
-        if(types.equals(ValidatorFactory.ClientTypes.STANDARD)){
-            poClient.setActive(false);
-        }
         poJSON =  poClient.saveRecord();
         if("error".equalsIgnoreCase((String)checkData(poJSON).get("result"))){
             if (!pbWtParent) poGRider.rollbackTrans();
@@ -304,7 +310,9 @@ public class Client_Master implements GRecord{
             case COMPANY:
                 poJSON =  saveInstitution();
                 if("error".equalsIgnoreCase((String)checkData(poJSON).get("result"))){
-                    if (!pbWtParent) poGRider.rollbackTrans();
+                    if (!pbWtParent) {
+                        poGRider.rollbackTrans();
+                    }
                     return checkData(poJSON);
                 }
 //                if("error".equalsIgnoreCase((String)poJSON.get("result"))){
@@ -328,6 +336,13 @@ public class Client_Master implements GRecord{
             
         
         }
+//        if("error".equalsIgnoreCase((String)checkData(poJSON).get("result"))){
+//                    if (!pbWtParent) poGRider.rollbackTrans();
+//            return poJSON;
+//        }else{
+//            
+//        }
+//        
         
         if (!pbWtParent) poGRider.commitTrans();
         

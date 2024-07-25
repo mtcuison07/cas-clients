@@ -619,9 +619,9 @@ public class Account_Accreditation implements GTransaction {
 //    }
     
     public JSONObject SearchAccredetation(String fsValue, boolean fbByCode){
-        String lsHeader = "Transaction No»Category»Date";
-        String lsColName = "sTransNox»sCategrCd»dTransact";
-        String lsColCrit = "a.sTransNox»a.sCategrCd»a.dTransact";
+        String lsHeader = "Transaction No»Company Name»Date";
+        String lsColName = "sTransNox»sCompnyNm»dTransact";
+        String lsColCrit = "a.sTransNox»b.sCompnyNm»a.dTransact";
         String lsSQL = " SELECT " +
                         " a.sTransNox, " +
                         " a.cAcctType, " +

@@ -349,7 +349,7 @@ public class Client_Master implements GRecord{
         return poJSON;
     }
     private JSONObject checkData(JSONObject joValue){
-        if(pnEditMode == EditMode.READY || pnEditMode == EditMode.UPDATE){
+        if(pnEditMode == EditMode.READY || pnEditMode == EditMode.ADDNEW || pnEditMode == EditMode.UPDATE){
             if(joValue.containsKey("continue")){
                 if(true == (boolean)joValue.get("continue")){
                     joValue.put("result", "success");
@@ -517,6 +517,7 @@ public class Client_Master implements GRecord{
         if (paInsContc.isEmpty()){
             paInsContc.add(new Model_Client_Institution_Contact(poGRider));
             paInsContc.get(0).newRecord();
+            paInsContc.get(0).setPrimary(true);
             paInsContc.get(0).setClientID(poClient.getClientID());
             poJSON.put("result", "success");
             poJSON.put("message", "Contact person add record.");
@@ -727,6 +728,12 @@ public class Client_Master implements GRecord{
                 if(lnCtr>0){
                     if(paMobile.get(lnCtr).getContactNo().isEmpty()){
                         paMobile.remove(lnCtr);
+                        if (lnCtr>paMobile.size()-1){
+                        obj.put("result", "error");
+                        obj.put("continue",true);
+                        obj.put("message", "No client mobile no detected.");
+                        return obj;
+                    }
                     }
                 }
                 ValidatorInterface validator = ValidatorFactory.make(types,  ValidatorFactory.TYPE.Client_Mobile, paMobile.get(lnCtr));
@@ -772,6 +779,12 @@ public class Client_Master implements GRecord{
             if(lnCtr>0){
                 if(paAddress.get(lnCtr).getBarangayID().isEmpty() || paAddress.get(lnCtr).getTownID().isEmpty()){
                     paAddress.remove(lnCtr);
+                    if (lnCtr>paAddress.size()-1){
+                        obj.put("result", "error");
+                        obj.put("continue",true);
+                        obj.put("message", "No client address detected.");
+                        return obj;
+                    }
                 }
             }
             ValidatorInterface validator = ValidatorFactory.make(types,  ValidatorFactory.TYPE.Client_Address, paAddress.get(lnCtr));
@@ -813,6 +826,12 @@ public class Client_Master implements GRecord{
             if(lnCtr>0){
                 if(paMail.get(lnCtr).getEmail().isEmpty()){
                     paMail.remove(lnCtr);
+                    if (lnCtr>paMail.size()-1){
+                        obj.put("result", "error");
+                        obj.put("continue",true);
+                        obj.put("message", "No client email account detected.");
+                        return obj;
+                    }
                 }
             }
             if (!validator.isEntryOkay()){
@@ -839,12 +858,17 @@ public class Client_Master implements GRecord{
         
         int lnCtr;
         String lsSQL;
-        
         for (lnCtr = 0; lnCtr <= paInsContc.size() -1; lnCtr++){
             paInsContc.get(lnCtr).setClientID(poClient.getClientID());
             if(lnCtr>0){
                 if(paInsContc.get(lnCtr).getContactPerson().isEmpty()){
                     paInsContc.remove(lnCtr);
+                    if (lnCtr>paInsContc.size()-1){
+                        obj.put("result", "error");
+                        obj.put("continue",true);
+                        obj.put("message", "No client institutional detected.");
+                        return obj;
+                    }
                 }
             }
             ValidatorInterface validator = ValidatorFactory.make(types,  ValidatorFactory.TYPE.Client_Institution_Contact, paInsContc.get(lnCtr));
@@ -854,6 +878,8 @@ public class Client_Master implements GRecord{
                 return obj;
 
             }
+            
+            System.out.println(paInsContc.size());
             obj = paInsContc.get(lnCtr).saveRecord();
 
         }    
@@ -878,6 +904,12 @@ public class Client_Master implements GRecord{
             if(lnCtr>0){
                 if(paSocMed.get(lnCtr).getSocialAccount().isEmpty()){
                     paSocMed.remove(lnCtr);
+                    if (lnCtr>paSocMed.size()-1){
+                        obj.put("result", "error");
+                        obj.put("continue",true);
+                        obj.put("message", "No client social account detected.");
+                        return obj;
+                    }
                 }
             }
             ValidatorInterface validator = ValidatorFactory.make(types,  ValidatorFactory.TYPE.Client_Social_Media, paSocMed.get(lnCtr));

@@ -381,6 +381,7 @@ public class Client_Master implements GRecord{
         if (paMobile.size()<=0){
             paMobile.add(new Model_Client_Mobile(poGRider));
             paMobile.get(0).newRecord();
+            paInsContc.get(0).setPrimary(true);
             paMobile.get(0).setValue("sClientID", poClient.getClientID());
             poJSON.put("result", "success");
             poJSON.put("message", "Mobile No. add record.");
@@ -413,6 +414,7 @@ public class Client_Master implements GRecord{
         if (paMail.isEmpty()){
             paMail.add(new Model_Client_Mail(poGRider));
             paMail.get(0).newRecord();
+            paMail.get(0).setPrimary("1");
             paMail.get(0).setValue("sClientID", poClient.getClientID());
             poJSON.put("result", "success");
             poJSON.put("message", "Email address add record.");
@@ -477,6 +479,7 @@ public class Client_Master implements GRecord{
         if (paAddress.isEmpty()){
             paAddress.add(new Model_Client_Address(poGRider));
             paAddress.get(0).newRecord();
+            paAddress.get(0).setPrimary("1");
             paAddress.get(0).setClientID(poClient.getClientID());
             poJSON.put("result", "success");
             poJSON.put("message", "Address add record.");
@@ -718,6 +721,16 @@ public class Client_Master implements GRecord{
         int lnCtr;
         String lsSQL;
         
+        boolean hasPrimary =  false;
+        
+        for (lnCtr = 0; lnCtr <= paMobile.size() -1; lnCtr++){
+             if(paMobile.get(lnCtr).isPrimary()){
+                 hasPrimary = true;
+             }
+        }
+         if(!hasPrimary){
+             paMobile.get(0).setPrimary(true);
+         }
         for (lnCtr = 0; lnCtr <= paMobile.size() -1; lnCtr++){
             paMobile.get(lnCtr).setClientID(poClient.getClientID());
             
@@ -773,6 +786,15 @@ public class Client_Master implements GRecord{
         int lnCtr;
         String lsSQL;
         
+        boolean hasPrimary =  false;
+        for (lnCtr = 0; lnCtr <= paAddress.size() -1; lnCtr++){
+             if(paAddress.get(lnCtr).getPrimary().equals("1")){
+                 hasPrimary = true;
+             }
+        }
+        if(!hasPrimary){
+            paAddress.get(0).setPrimary("1");
+        }
         for (lnCtr = 0; lnCtr <= paAddress.size() -1; lnCtr++){
             paAddress.get(lnCtr).setClientID(poClient.getClientID());
 //            Validator_Client_Address validator = new Validator_Client_Address(paAddress.get(lnCtr));
@@ -815,7 +837,15 @@ public class Client_Master implements GRecord{
         
         int lnCtr;
         String lsSQL;
-        
+        boolean hasPrimary =  false;
+        for (lnCtr = 0; lnCtr <= paMail.size() -1; lnCtr++){
+             if(paMail.get(lnCtr).getPrimary().equals("1")){
+                 hasPrimary = true;
+             }
+        }
+        if(!hasPrimary){
+            paMail.get(0).setPrimary("1");
+        }
         for (lnCtr = 0; lnCtr <= paMail.size() -1; lnCtr++){
             paMail.get(lnCtr).setClientID(poClient.getClientID());
 //            Validator_Client_Mail validator = new Validator_Client_Mail(paMail.get(lnCtr));
@@ -855,9 +885,18 @@ public class Client_Master implements GRecord{
             obj.put("message", "No contact person detected. Please encode contact person .");
             return obj;
         }
-        
         int lnCtr;
         String lsSQL;
+        
+        boolean hasPrimary =  false;
+        for (lnCtr = 0; lnCtr <= paInsContc.size() -1; lnCtr++){
+             if(paInsContc.get(lnCtr).isPrimary().equals("1")){
+                 hasPrimary = true;
+             }
+        }
+         if(!hasPrimary){
+             paInsContc.get(0).setPrimary(true);
+         }
         for (lnCtr = 0; lnCtr <= paInsContc.size() -1; lnCtr++){
             paInsContc.get(lnCtr).setClientID(poClient.getClientID());
             if(lnCtr>0){

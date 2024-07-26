@@ -665,7 +665,7 @@ public class Account_Accreditation implements GTransaction {
                                         lsColCrit, 
                                         fbByCode ? 0 :1);
             
-        System.out.println("loJSON = " + loJSON.toJSONString());
+//        System.out.println("loJSON = " + loJSON.toJSONString());
             
             if (loJSON != null && !"error".equals((String) loJSON.get("result"))) {
                 System.out.println("sTransNox = " + (String) loJSON.get("sTransNox"));

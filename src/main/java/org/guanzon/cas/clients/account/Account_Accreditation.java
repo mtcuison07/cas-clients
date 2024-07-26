@@ -374,6 +374,7 @@ public class Account_Accreditation implements GTransaction {
 //                System.out.println("get sClientID = " + getAccount(fnRow, 4));
                 loJSON.put("result", "success");
             }else {
+                loJSON = new JSONObject();
                 loJSON.put("result", "error");
                 loJSON.put("message", "No client information found for: " + fsValue + ", Please check client type and client name details.");
                 return loJSON;
@@ -618,9 +619,9 @@ public class Account_Accreditation implements GTransaction {
 //    }
     
     public JSONObject SearchAccredetation(String fsValue, boolean fbByCode){
-        String lsHeader = "Transaction No»Category»Date";
-        String lsColName = "sTransNox»sCategrCd»dTransact";
-        String lsColCrit = "a.sTransNox»a.sCategrCd»a.dTransact";
+        String lsHeader = "Transaction No»Company Name»Date";
+        String lsColName = "sTransNox»sCompnyNm»dTransact";
+        String lsColCrit = "a.sTransNox»b.sCompnyNm»a.dTransact";
         String lsSQL = " SELECT " +
                         " a.sTransNox, " +
                         " a.cAcctType, " +
@@ -664,7 +665,7 @@ public class Account_Accreditation implements GTransaction {
                                         lsColCrit, 
                                         fbByCode ? 0 :1);
             
-        System.out.println("loJSON = " + loJSON.toJSONString());
+//        System.out.println("loJSON = " + loJSON.toJSONString());
             
             if (loJSON != null && !"error".equals((String) loJSON.get("result"))) {
                 System.out.println("sTransNox = " + (String) loJSON.get("sTransNox"));

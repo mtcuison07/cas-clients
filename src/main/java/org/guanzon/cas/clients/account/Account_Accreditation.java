@@ -58,8 +58,6 @@ public class Account_Accreditation implements GTransaction {
             poModel = new ArrayList<>();
             
             addDetail();
-                
-                
             poJSON.put("result", "success");
             poJSON.put("message", "initialized new record.");
             pnEditMode = EditMode.ADDNEW;
@@ -559,11 +557,52 @@ public class Account_Accreditation implements GTransaction {
             
             }
             obj = poModel.get(lnCtr).saveRecord();
+            obj = saveUpdateAR(lnCtr, poModel.get(lnCtr).getClientID());
 
         }    
         
         return obj;
     }
+    public JSONObject saveUpdateAR(int fnRow, String sClientID){
+       
+        JSONObject obj = new JSONObject();
+        
+        String lsTable;
+        String lsTranStat = getAccount(fnRow, 9).toString();
+        if(poModel.get(fnRow).getAcctType().equalsIgnoreCase("0")){
+            lsTable = "AP_Client_Master";
+        }else{
+            lsTable = "AR_Client_Master";
+        }
+        
+        String lsSQL = "UPDATE " + lsTable + 
+                        " SET  cRecdStat = " + SQLUtil.toSQL(lsTranStat) + 
+                            ", sModified = " + SQLUtil.toSQL(poGRider.getUserID()) +
+                            ", dModified = " + SQLUtil.toSQL(poGRider.getServerDate()) + 
+                        " WHERE sClientID = " + SQLUtil.toSQL(sClientID);
+        
+        if (!pbWthParent) poGRider.beginTrans();
+        
+        if (poGRider.executeQuery(lsSQL, lsTable, "", "") == 0){
+            if (!poGRider.getErrMsg().isEmpty()){
+                obj.put("result","error");
+                obj.put("message",poGRider.getErrMsg());
+            } else {
+                obj.put("result","error");
+                obj.put("message","No record updated.");
+            }  
+        } 
+        
+        obj.put("result","success");
+        obj.put("message","Record successfuly updated.");
+        if (!pbWthParent){
+            if (obj.get("result").equals("success")){
+                poGRider.commitTrans();
+            } else poGRider.rollbackTrans();
+        }
+        return obj;
+    }
+    
     public JSONObject SearchCategory(int fnRow, String fsValue, boolean fbByCode){
         
         JSONObject loJSON;
@@ -672,6 +711,7 @@ public class Account_Accreditation implements GTransaction {
                 
                 return openTransaction((String) loJSON.get("sTransNox"));
             }else {
+                loJSON = new JSONObject();
                 loJSON.put("result", "error");
                 loJSON.put("message", "No client information found for: " + fsValue + ", Please check client type and client name details.");
                 return loJSON;

@@ -381,7 +381,9 @@ public class Client_Master implements GRecord{
         if (paMobile.size()<=0){
             paMobile.add(new Model_Client_Mobile(poGRider));
             paMobile.get(0).newRecord();
-            paInsContc.get(0).setPrimary(true);
+            
+            paMobile.get(0).setPrimary(true);
+//            paInsContc.get(0).setPrimary(true);
             paMobile.get(0).setValue("sClientID", poClient.getClientID());
             poJSON.put("result", "success");
             poJSON.put("message", "Mobile No. add record.");
